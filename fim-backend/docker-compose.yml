@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:latest
+    container_name: fim-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+  foundry:
+    image: felddy/foundryvtt:release
+    container_name: foundryvtt
+    hostname: foundryvtt
+    ports:
+      - "30000:30000"
+    volumes:
+      - ./foundryvtt-data:/data
+    environment:
+      - FOUNDRY_VTT_PASSWORD=${FOUNDRY_VTT_PASSWORD}
+      - FOUNDRY_VTT_ADMIN_KEY=${FOUNDRY_VTT_ADMIN_KEY}
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  foundryvtt-data:
