@@ -18,10 +18,10 @@ services:
     ports:
       - "30000:30000"
     volumes:
-      - ./foundryvtt-data:/data
+      - ${FOUNDRY_DATA_DIR}:/data
     environment:
-      - FOUNDRY_VTT_PASSWORD=${FOUNDRY_VTT_PASSWORD}
       - FOUNDRY_VTT_ADMIN_KEY=${FOUNDRY_VTT_ADMIN_KEY}
+      - FOUNDRY_DATA_DIR=${FOUNDRY_DATA_DIR}
     restart: unless-stopped
 
 volumes:
