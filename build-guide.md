@@ -230,61 +230,199 @@ nest g controller assignments
 ## Phase 3: Frontend Setup (Next.js)
 
 ### 3.1 Initialize Frontend
-```bash
-npx create-next-app@latest dnd-frontend --typescript --tailwind --eslint --app
-cd dnd-frontend
-```
+1.  **Create Next.js Application**:
+    ```bash
+    npx create-next-app@latest dnd-frontend --typescript --tailwind --eslint --app
+    cd dnd-frontend
+    ```
+    *   This command initializes a new Next.js project named `dnd-frontend` with TypeScript, Tailwind CSS, ESLint, and the App Router enabled.
 
-**Install dependencies**:
-```bash
-npm install next-auth @next-auth/prisma-adapter
-npm install react-hook-form @hookform/resolvers zod
-npm install lucide-react clsx tailwind-merge
-npm install -D @types/node
-```
+2.  **Configure ESLint and Prettier**:
+    *   The `create-next-app` command already sets up ESLint. Ensure your `.eslintrc.json` (or equivalent) includes recommended Next.js and React rules.
+    *   Install Prettier for code formatting:
+        ```bash
+        npm install -D prettier prettier-plugin-tailwindcss
+        ```
+    *   Create a `.prettierrc` file at the root of `dnd-frontend` for consistent code style:
+        ```json
+        {
+          "semi": true,
+          "singleQuote": true,
+          "printWidth": 100,
+          "tabWidth": 2,
+          "trailingComma": "es5",
+          "plugins": ["prettier-plugin-tailwindcss"]
+        }
+        ```
+    *   Add a `.prettierignore` file to exclude specific files from formatting:
+        ```
+        .next/
+        node_modules/
+        ```
+    *   Integrate Prettier with ESLint by adding `prettier` to your ESLint configuration (e.g., in `extends` array).
+
+3.  **Install Frontend Dependencies**:
+    ```bash
+    npm install next-auth @next-auth/prisma-adapter
+    npm install react-hook-form @hookform/resolvers zod
+    npm install lucide-react clsx tailwind-merge
+    npm install -D @types/node
+    ```
+    *   `next-auth`: For authentication in Next.js applications.
+    *   `@next-auth/prisma-adapter`: Adapter to integrate NextAuth.js with Prisma.
+    *   `react-hook-form`: For efficient and flexible form management.
+    *   `@hookform/resolvers`: Integrates form validation libraries like Zod with React Hook Form.
+    *   `zod`: A TypeScript-first schema declaration and validation library.
+    *   `lucide-react`: A collection of beautiful open-source icons.
+    *   `clsx`, `tailwind-merge`: Utilities for conditionally joining CSS class names and merging Tailwind CSS classes without style conflicts.
+    *   `@types/node`: TypeScript type definitions for Node.js.
 
 ### 3.2 Tailwind Configuration
-
-**Configure red-brick/cloud-gray theme** (`tailwind.config.js`):
-```js
-module.exports = {
-  content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
-  theme: {
-    extend: {
-      colors: {
-        brick: {
-          50: '#fef7f7',
-          500: '#e66f6f',
-          700: '#b83535',
-          800: '#9a2e2e',
+1.  **Configure Theme Colors** (`tailwind.config.js`):
+    ```js
+    module.exports = {
+      content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+      theme: {
+        extend: {
+          colors: {
+            brick: {
+              50: '#fef7f7',
+              500: '#e66f6f',
+              700: '#b83535',
+              800: '#9a2e2e',
+            },
+            gray: {
+              50: '#f8fafc',
+              500: '#64748b',
+              700: '#334155',
+              900: '#0f172a',
+            }
+          }
         },
-        gray: {
-          50: '#f8fafc',
-          500: '#64748b',
-          700: '#334155',
-          900: '#0f172a',
-        }
-      }
-    },
-  },
-  plugins: [],
-}
-```
+      },
+      plugins: [],
+    }
+    ```
+    *   This configuration extends Tailwind's default color palette to include custom `brick` (red-brick) and `gray` (cloud-gray) shades, aligning with the project's design requirements.
+
+2.  **Update Global CSS** (`src/app/globals.css`):
+    *   Ensure Tailwind's base, components, and utilities are imported:
+        ```css
+        @tailwind base;
+        @tailwind components;
+        @tailwind utilities;
+        ```
+    *   This ensures Tailwind CSS is correctly integrated and applied throughout the application.
 
 ### 3.3 Authentication Setup
+1.  **Configure NextAuth.js** (`src/lib/auth.ts`):
+    *   Implement a Credentials provider for email/password login.
+    *   Configure JWT strategy for session management.
+    *   Set up session callbacks to include user roles and custom data in the session object.
+    *   Define role-based access control within NextAuth.js to protect routes and API calls.
 
-**Configure NextAuth** (`src/lib/auth.ts`):
-- Credentials provider
-- JWT strategy
-- Session callbacks
-- Role-based access
+2.  **Set Environment Variables** (`.env.local`):
+    ```bash
+    NEXTAUTH_URL="http://localhost:3000"
+    NEXTAUTH_SECRET="your-nextauth-secret"
+    NEXT_PUBLIC_API_URL="http://localhost:3001"
+    ```
+    *   `NEXTAUTH_URL`: The base URL of your Next.js application.
+    *   `NEXTAUTH_SECRET`: A secret used to sign and encrypt session tokens. Generate a strong, random string for this.
+    *   `NEXT_PUBLIC_API_URL`: The URL of the backend API, used for making authentication requests.
 
-**Environment variables** (`.env.local`):
-```bash
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-nextauth-secret"
-NEXT_PUBLIC_API_URL="http://localhost:3001"
-```
+3.  **Create API Utility for Backend Interaction** (`src/lib/api.ts`):
+    *   Develop a utility to handle API requests to the NestJS backend, including setting up Axios or Fetch with interceptors for JWT token attachment and error handling.
+    *   Example structure:
+        ```typescript
+        // src/lib/api.ts
+        import axios from 'axios';
+
+        const api = axios.create({
+          baseURL: process.env.NEXT_PUBLIC_API_URL,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        // Add a request interceptor to include the JWT token
+        api.interceptors.request.use(
+          (config) => {
+            // Retrieve token from session or local storage
+            // const token = getSessionToken();
+            // if (token) {
+            //   config.headers.Authorization = `Bearer ${token}`;
+            // }
+            return config;
+          },
+          (error) => {
+            return Promise.reject(error);
+          }
+        );
+
+        export default api;
+        ```
+    *   This utility will centralize API calls and ensure consistent authentication headers.
+
+### 3.4 Core UI Components for Authentication
+1.  **Create Reusable UI Components** (`src/components/ui/`):
+    *   `Button.tsx`: A versatile button component with different styles (primary, secondary, ghost) and loading states.
+    *   `Input.tsx`: A styled input component that can display validation errors.
+    *   `Card.tsx`: A container component for grouping related content, often used for forms or data displays.
+    *   `LoadingSpinner.tsx`: A visual indicator for asynchronous operations.
+    *   `Alert.tsx`: Components for displaying success, error, or informational messages.
+
+2.  **Implement Form Validation Schema** (`src/lib/validation/auth.ts`):
+    *   Use Zod to define schemas for login and registration forms, ensuring data integrity and providing clear error messages.
+    *   Example for login schema:
+        ```typescript
+        // src/lib/validation/auth.ts
+        import { z } from 'zod';
+
+        export const loginSchema = z.object({
+          email: z.string().email({ message: 'Invalid email address' }),
+          password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+        });
+
+        export type LoginInput = z.infer<typeof loginSchema>;
+        ```
+
+### 3.5 Authentication Pages
+1.  **Login Page** (`src/app/(auth)/login/page.tsx`):
+    *   Design a user-friendly login form using `react-hook-form` and Zod for validation.
+    *   Handle form submission by calling the NextAuth `signIn` function, interacting with the backend API.
+    *   Implement error handling for invalid credentials or API failures.
+    *   Redirect authenticated users to their respective dashboards (admin or player).
+
+2.  **Registration Page** (`src/app/(auth)/register/page.tsx`):
+    *   Create a registration form for new users, including fields for email, password, first name, and last name.
+    *   Utilize `react-hook-form` and Zod for client-side validation.
+    *   Submit registration data to the backend API.
+    *   Provide clear success or error feedback to the user.
+
+### 3.6 Layout and Navigation
+1.  **Authentication Layout** (`src/app/(auth)/layout.tsx`):
+    *   Create a dedicated layout for authentication pages (login, register) that provides a consistent visual experience, separate from the main application layout.
+
+2.  **Root Layout** (`src/app/layout.tsx`):
+    *   Wrap the application with `SessionProvider` from `next-auth/react` to make session data available throughout the app.
+    *   Integrate the main application layout components (Header, Footer, Sidebar) as needed, ensuring they adapt based on authentication status and user roles.
+
+### 3.7 Best Practices for Frontend Development
+1.  **Component Reusability**: Design UI components to be generic and reusable across different parts of the application.
+2.  **Client-Side Validation**: Implement robust client-side validation using libraries like Zod and `react-hook-form` to provide immediate feedback to users and reduce server load.
+3.  **Error Handling**: Implement comprehensive error handling for API calls and user input, displaying clear and actionable messages.
+4.  **Loading States**: Provide visual feedback (e.g., loading spinners, disabled buttons) during asynchronous operations to improve user experience.
+5.  **Accessibility (A11y)**: Ensure all interactive elements are keyboard-navigable, have appropriate ARIA attributes, and maintain sufficient color contrast.
+6.  **Responsive Design**: Use Tailwind CSS to build a responsive UI that adapts seamlessly to various screen sizes.
+7.  **Environment Variables**: Properly manage environment variables for API endpoints and secrets, separating development and production configurations.
+8.  **Code Organization**: Maintain a clear and consistent file structure (e.g., `components/ui`, `lib/auth`, `app/(auth)`) for better maintainability.
+9.  **TypeScript**: Leverage TypeScript for type safety, improving code quality and reducing runtime errors.
+10. **Security**:
+    *   **HTTPS**: Ensure all communication with the backend API uses HTTPS.
+    *   **Input Sanitization**: Although primarily a backend concern, be mindful of potential XSS vulnerabilities when rendering user-generated content on the frontend.
+    *   **Secure Cookies**: Configure NextAuth.js to use secure, HTTP-only cookies for session management.
+    *   **CSRF Protection**: NextAuth.js includes built-in CSRF protection for forms.
 
 ## Phase 4: Core Frontend Components
 
