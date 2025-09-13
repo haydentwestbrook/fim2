@@ -1,9 +1,7 @@
-import { handlers } from '@/lib/auth';
+import NextAuth from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { NextRequest } from 'next/server';
 
-export async function GET(req: Request, ctx: any) {
-  return handlers.GET(req, ctx);
-}
+const nextAuth = NextAuth(authOptions);
 
-export async function POST(req: Request, ctx: any) {
-  return handlers.POST(req, ctx);
-}
+export { nextAuth as GET, nextAuth as POST }

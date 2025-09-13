@@ -44,6 +44,7 @@ declare module 'next-auth/jwt' {
 }
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {
+  let refreshedTokens: any = undefined; // Declare outside try block
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
       method: 'POST',
@@ -53,7 +54,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
       body: JSON.stringify({ refreshToken: token.refreshToken }),
     });
 
-    const refreshedTokens = await response.json();
+    refreshedTokens = await response.json(); // Assign here
 
     if (!response.ok) {
       throw refreshedTokens;
@@ -66,7 +67,8 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
       refreshToken: refreshedTokens.refreshToken ?? token.refreshToken, // Fall back to old refresh token
     };
   } catch (error) {
-    console.error('Error refreshing access token:', JSON.stringify(error));
+    console.error('Error refreshing access token:', error);
+    console.error('Refresh token API response (if available):', JSON.stringify(refreshedTokens));
     return { ...token, error: 'RefreshAccessTokenError' as const };
   }
 }
@@ -80,6 +82,7 @@ export const authOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        let user: any = undefined; // Declare outside try block
         try {
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
             method: 'POST',
@@ -89,7 +92,7 @@ export const authOptions = {
             body: JSON.stringify(credentials),
           });
 
-          const user = await response.json();
+          user = await response.json(); // Assign here
 
           if (response.ok && user) {
             return {
@@ -107,6 +110,7 @@ export const authOptions = {
           }
         } catch (error) {
           console.error('Login error:', error);
+          console.error('Login API response (if available):', JSON.stringify(user));
           return null;
         }
       },
@@ -161,6 +165,3 @@ export const authOptions = {
   },
 };
 
-const nextAuth = NextAuth(authOptions);
-
-export const { auth, signIn, signOut, handlers } = nextAuth;
