@@ -34,6 +34,7 @@ export default async function RootLayout({
           geistSans.variable,
           geistMono.variable
         )}
+        suppressHydrationWarning={true}
       >
         <AuthSessionProvider session={session}>{children}</AuthSessionProvider>
       </body>
