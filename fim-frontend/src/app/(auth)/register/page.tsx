@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { AxiosError } from 'axios';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -35,9 +36,10 @@ export default function RegisterPage() {
       await api.post('/auth/register', data);
       setSuccess('Registration successful! You can now log in.');
       router.push('/login');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'An unexpected error occurred.');
-      console.error(err);
+    } catch (err: unknown) {
+      const axiosError = err as AxiosError<{ message: string }>;
+      setError(axiosError.response?.data?.message || 'An unexpected error occurred.');
+      console.error(axiosError);
     } finally {
       setIsLoading(false);
     }

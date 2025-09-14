@@ -1,7 +1,25 @@
-import NextAuth, { Account, Session, User as NextAuthUser } from 'next-auth';
+import type { Account, Session, User as NextAuthUser } from 'next-auth';
+import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { JWT } from 'next-auth/jwt';
 import { AdapterUser } from 'next-auth/adapters';
+
+interface RefreshTokenResponse {
+  accessToken: string;
+  expiresIn: number;
+  refreshToken?: string;
+}
+
+interface LoginResponse {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
 
 declare module 'next-auth' {
   interface Session {
@@ -44,7 +62,7 @@ declare module 'next-auth/jwt' {
 }
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {
-  let refreshedTokens: any = undefined; // Declare outside try block
+  let refreshedTokens: RefreshTokenResponse | undefined = undefined;
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
       method: 'POST',
@@ -54,7 +72,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
       body: JSON.stringify({ refreshToken: token.refreshToken }),
     });
 
-    refreshedTokens = await response.json(); // Assign here
+    refreshedTokens = (await response.json()) as RefreshTokenResponse;
 
     if (!response.ok) {
       throw refreshedTokens;
@@ -82,7 +100,7 @@ export const authOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        let user: any = undefined; // Declare outside try block
+        let user: LoginResponse | undefined = undefined;
         try {
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
             method: 'POST',
@@ -92,7 +110,7 @@ export const authOptions = {
             body: JSON.stringify(credentials),
           });
 
-          user = await response.json(); // Assign here
+          user = (await response.json()) as LoginResponse;
 
           if (response.ok && user) {
             return {

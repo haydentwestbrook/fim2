@@ -640,6 +640,103 @@ npm run test:e2e
 - Environment variables
 - CDN configuration
 
+### 10.3 Nginx Reverse Proxy for Backend
+
+**Assumptions:**
+*   Your NestJS application is running on your Raspberry Pi, listening on port `3001`.
+*   Your Raspberry Pi has a local IP address (e.g., `192.168.1.100`).
+*   You have SSH access to your Raspberry Pi or are working directly on it.
+
+**Steps to Set Up Nginx Reverse Proxy:**
+
+**1. Install Nginx on your Raspberry Pi:**
+
+Open a terminal on your Raspberry Pi and run the following commands:
+
+```bash
+sudo apt update
+sudo apt install nginx
+```
+
+**2. Configure Nginx as a Reverse Proxy:**
+
+Nginx configuration files are typically located in `/etc/nginx/`. You'll create a new configuration file for your NestJS application.
+
+*   **Create a new server block configuration file:**
+    ```bash
+    sudo nano /etc/nginx/sites-available/nestjs_backend
+    ```
+
+*   **Add the following content to the file:**
+
+    ```nginx
+    server {
+        listen 80; # Nginx will listen on port 80 for incoming HTTP requests
+        server_name your_raspberry_pi_ip_or_domain; # Replace with your Pi's IP or domain name (e.g., 192.168.1.100 or mybackend.com)
+
+        location / {
+            proxy_pass http://127.0.0.1:3001; # Forward requests to your NestJS app running on port 3001
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+    ```
+    *   **`listen 80;`**: Nginx will listen for incoming HTTP requests on the standard web port 80.
+    *   **`server_name your_raspberry_pi_ip_or_domain;`**: This should be the IP address of your Raspberry Pi or a domain name that resolves to it. If you're just testing locally, your Pi's local IP is fine.
+    *   **`proxy_pass http://127.0.0.1:3001;`**: This is the core of the reverse proxy. It tells Nginx to forward all requests received on port 80 to your NestJS application, which is running on `localhost` (127.0.0.1) at port `3001`.
+    *   The `proxy_set_header` directives ensure that important client information (like the real IP address) is passed through to your NestJS application.
+
+*   **Save and close the file** (Ctrl+X, then Y, then Enter in nano).
+
+**3. Enable the Nginx Configuration:**
+
+Create a symbolic link from your `sites-available` configuration to the `sites-enabled` directory:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/nestjs_backend /etc/nginx/sites-enabled/
+```
+
+**4. Test Nginx Configuration and Restart Nginx:**
+
+Before restarting, always test your Nginx configuration for syntax errors:
+
+```bash
+sudo nginx -t
+```
+
+If the test is successful, restart Nginx to apply the changes:
+
+```bash
+sudo systemctl restart nginx
+```
+
+**5. Adjust Firewall (if UFW is active):**
+
+If you have a firewall like UFW (Uncomplicated Firewall) enabled on your Raspberry Pi, you'll need to allow HTTP (port 80) traffic:
+
+```bash
+sudo ufw allow 'Nginx HTTP'
+sudo ufw enable # If not already enabled
+```
+
+**6. Test the Reverse Proxy:**
+
+Now, instead of accessing your NestJS application directly via `http://your_raspberry_pi_ip:3001`, you can access it via `http://your_raspberry_pi_ip` (or your domain name if you configured one). Nginx will receive the request on port 80 and forward it to your NestJS app on port 3001.
+
+**For HTTPS (SSL/TLS):**
+For production environments, you would typically set up HTTPS using a free certificate from Let's Encrypt with Certbot. This would involve:
+1.  Installing Certbot.
+2.  Running `sudo certbot --nginx -d your_domain.com` (replace `your_domain.com` with your actual domain).
+3.  Certbot will automatically configure Nginx to use HTTPS and renew your certificates.
+
+This simple Nginx setup provides the basic security benefits of a reverse proxy, such as hiding your backend port and centralizing access.
+
 ## Quality Checklist
 
 ### Code Quality
