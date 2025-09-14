@@ -14,7 +14,8 @@ RUN npm install
 COPY . .
 
 # Generate Prisma client
-RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf && npx prisma generate
+RUN apk add --no-cache ca-certificates
+RUN npx prisma generate
 
 # Build the NestJS application
 RUN npm run build
