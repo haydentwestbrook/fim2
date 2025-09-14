@@ -14,7 +14,6 @@ RUN npm install
 COPY . .
 
 # Generate Prisma client
-RUN apk add --no-cache ca-certificates
 RUN npx prisma generate
 
 # Build the NestJS application
