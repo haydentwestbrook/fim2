@@ -20,7 +20,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # Expose the port the app runs on
-EXPOSE 3000
+EXPOSE 3001
 
 # Define the command to run the application
 CMD ["npm", "run", "start:prod"]

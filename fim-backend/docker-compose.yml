@@ -33,7 +33,7 @@ services:
       dockerfile: Dockerfile
     container_name: fim-backend
     ports:
-      - "3001:3000"
+      - "3001:3001"
     user: "root" # Run as root to access root-owned Foundry data directory
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
