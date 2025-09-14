@@ -31,9 +31,6 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-      dns:
-        - 8.8.8.8
-        - 8.8.4.4
     container_name: fim-backend
     ports:
       - "3001:3001"
