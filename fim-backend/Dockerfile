@@ -1,6 +1,9 @@
 # Use an official Node.js runtime as a parent image
 FROM node:20-alpine
 
+# Set DNS for reliable package downloads and Prisma binary fetching
+RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf
+
 # Set the working directory in the container
 WORKDIR /app
 
