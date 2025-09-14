@@ -15,6 +15,7 @@ services:
     image: felddy/foundryvtt:release
     container_name: foundryvtt
     hostname: foundryvtt
+    user: "1000:1000" # Set user to match the container's uid:gid
     ports:
       - "30000:30000"
     volumes:
@@ -23,6 +24,19 @@ services:
       - FOUNDRY_VTT_ADMIN_KEY=${FOUNDRY_VTT_ADMIN_KEY}
       - FOUNDRY_DATA_DIR=${FOUNDRY_DATA_DIR}
     restart: unless-stopped
+
+  backend:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: fim-backend
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
+    depends_on:
+      - db
+    restart: always
 
 volumes:
   postgres_data:
