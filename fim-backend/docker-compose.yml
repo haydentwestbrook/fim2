@@ -15,7 +15,7 @@ services:
     image: felddy/foundryvtt:release
     container_name: foundryvtt
     hostname: foundryvtt
-    user: "1000:1000" # Set user to match the container's uid:gid
+    user: "root" # Run as root to access root-owned Foundry data directory
     ports:
       - "30000:30000"
     volumes:
@@ -23,6 +23,8 @@ services:
     environment:
       - FOUNDRY_VTT_ADMIN_KEY=${FOUNDRY_VTT_ADMIN_KEY}
       - FOUNDRY_DATA_DIR=${FOUNDRY_DATA_DIR}
+      - FOUNDRY_USERNAME=${FOUNDRY_USERNAME}
+      - FOUNDRY_PASSWORD=${FOUNDRY_PASSWORD}
     restart: unless-stopped
 
   backend:
@@ -32,11 +34,18 @@ services:
     container_name: fim-backend
     ports:
       - "3001:3000"
+    user: "root" # Run as root to access root-owned Foundry data directory
     environment:
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
+      - FOUNDRY_DATA_DIR=${FOUNDRY_DATA_DIR} # Pass Foundry data directory to backend
+    volumes:
+      - ${FOUNDRY_DATA_DIR}:/app/foundry-data # Mount Foundry data directory
     depends_on:
       - db
     restart: always
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
 
 volumes:
   postgres_data:
