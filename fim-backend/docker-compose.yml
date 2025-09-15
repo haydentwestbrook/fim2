@@ -39,6 +39,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?schema=public
       - FOUNDRY_DATA_DIR=${FOUNDRY_DATA_DIR} # Pass Foundry data directory to backend
+      - FRONTEND_URL=${FRONTEND_URL} # Add this line
     volumes:
       - ${FOUNDRY_DATA_DIR}:/app/foundry-data # Mount Foundry data directory
     depends_on:
