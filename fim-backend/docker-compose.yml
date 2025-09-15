@@ -31,9 +31,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-      args:
-        - HTTP_PROXY=
-        - HTTPS_PROXY=
+      network: host
     container_name: fim-backend
     ports:
       - "3001:3001"
