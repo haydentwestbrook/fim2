@@ -17,7 +17,7 @@ services:
     hostname: foundryvtt
     user: "root" # Run as root to access root-owned Foundry data directory
     ports:
-      - "30000:30000"
+      - "${FOUNDRY_PORT:-30000}:30000"
     volumes:
       - ${FOUNDRY_DATA_DIR}:/data
     environment:
@@ -31,7 +31,6 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-      network: host
     container_name: fim-backend
     ports:
       - "3001:3001"
