@@ -6,6 +6,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ApiTags, ApiResponse, ApiOperation } from '@nestjs/swagger';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { LoggerService } from '../common/logger/logger.service';
+import { AuthResponseDto } from './dto/auth-response.dto'; // Import AuthResponseDto
 
 @ApiTags('auth')
 @Controller('auth')
@@ -31,9 +32,9 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Log in a user and get JWT tokens' })
-  @ApiResponse({ status: 200, description: 'User successfully logged in.', type: Object }) // TODO: Define a proper response DTO
+  @ApiResponse({ status: 200, description: 'User successfully logged in.', type: AuthResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized: Invalid credentials.' })
-  async login(@Body() loginUserDto: LoginUserDto) {
+  async login(@Body() loginUserDto: LoginUserDto): Promise<AuthResponseDto> {
     this.logger.log(`Received login request for email: ${loginUserDto.email}`);
     const result = await this.authService.login(loginUserDto);
     this.logger.log(`Login successful for email: ${loginUserDto.email}`);
@@ -43,9 +44,9 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
-  @ApiResponse({ status: 200, description: 'Access token successfully refreshed.', type: Object }) // TODO: Define a proper response DTO
+  @ApiResponse({ status: 200, description: 'Access token successfully refreshed.', type: AuthResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized: Invalid or expired refresh token.' })
-  async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto): Promise<AuthResponseDto> {
     this.logger.log('Received refresh token request.');
     const result = await this.authService.refreshTokens(refreshTokenDto.refreshToken);
     this.logger.log('Tokens refreshed successfully.');

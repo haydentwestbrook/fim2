@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { FoundryModule } from './foundry/foundry.module';
 import { LoggerModule } from './common/logger/logger.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { LoggerModule } from './common/logger/logger.module';
     PrismaModule,
     FoundryModule,
     LoggerModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [

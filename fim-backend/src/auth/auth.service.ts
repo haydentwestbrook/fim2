@@ -6,8 +6,10 @@ import { UsersService } from '../users/users.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role } from './decorators/roles.decorator';
+import { User } from '@prisma/client'; // Import User from Prisma client
+import { Role } from '@prisma/client'; // Import Role from Prisma client
 import { LoggerService } from '../common/logger/logger.service';
+import { AuthResponseDto } from './dto/auth-response.dto'; // Import AuthResponseDto
 
 @Injectable()
 export class AuthService {
@@ -21,7 +23,13 @@ export class AuthService {
     this.logger.setContext(AuthService.name);
   }
 
-  async register(registerUserDto: RegisterUserDto) {
+  /**
+   * Registers a new user.
+   * @param registerUserDto The data for registering the user.
+   * @returns The newly created user.
+   * @throws BadRequestException if a user with the given email already exists.
+   */
+  async register(registerUserDto: RegisterUserDto): Promise<User> {
     this.logger.log(`Attempting to register user: ${registerUserDto.email}`);
     const existingUser = await this.usersService.findByEmail(registerUserDto.email);
     if (existingUser) {
@@ -33,7 +41,13 @@ export class AuthService {
     return newUser;
   }
 
-  async validateUser(email: string, pass: string): Promise<any> {
+  /**
+   * Validates a user's credentials.
+   * @param email The user's email.
+   * @param pass The user's password.
+   * @returns The user object (without password) if valid, otherwise null.
+   */
+  async validateUser(email: string, pass: string): Promise<Omit<User, 'password'> | null> {
     this.logger.log(`Attempting to validate user: ${email}`);
     const user = await this.usersService.findByEmail(email);
     if (!user) {
@@ -54,7 +68,13 @@ export class AuthService {
     return result;
   }
 
-  async login(loginUserDto: LoginUserDto) {
+  /**
+   * Logs in a user and generates access and refresh tokens.
+   * @param loginUserDto The login credentials.
+   * @returns An object containing the access token and refresh token.
+   * @throws UnauthorizedException if credentials are invalid.
+   */
+  async login(loginUserDto: LoginUserDto): Promise<AuthResponseDto> {
     this.logger.log(`Attempting to log in user: ${loginUserDto.email}`);
     const user = await this.validateUser(loginUserDto.email, loginUserDto.password);
     if (!user) {
@@ -92,7 +112,13 @@ export class AuthService {
     };
   }
 
-  async refreshTokens(refreshToken: string) {
+  /**
+   * Refreshes access and refresh tokens using a valid refresh token.
+   * @param refreshToken The refresh token.
+   * @returns An object containing new access and refresh tokens.
+   * @throws UnauthorizedException if the refresh token is invalid or expired, or user is not found/inactive.
+   */
+  async refreshTokens(refreshToken: string): Promise<AuthResponseDto> {
     this.logger.log('Attempting to refresh tokens.');
     const decoded = this.jwtService.decode(refreshToken);
     if (!decoded || !decoded.sub) {
@@ -125,26 +151,28 @@ export class AuthService {
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN'),
     });
 
-    // Invalidate the old refresh token and create a new one (optional, but good practice)
-    this.logger.debug(`Invalidating old refresh token for user ${user.email}`);
-    await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
-    this.logger.debug(`Old refresh token invalidated. Generating new refresh token for user ${user.email}`);
+    // Invalidate the old refresh token and create a new one within a transaction
+    this.logger.debug(`Invalidating old refresh token for user ${user.email} and generating new one.`);
+    const { newRefreshToken, expiresAt } = await this.prisma.$transaction(async (prisma) => {
+      await prisma.refreshToken.delete({ where: { id: storedToken.id } });
 
-    const newRefreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN'),
-    });
+      const newRefreshToken = this.jwtService.sign(payload, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN'),
+      });
 
-    const expiresAt = new Date();
-    const expiresInDays = parseInt(this.configService.get<string>('JWT_REFRESH_EXPIRES_IN_DAYS') || '7');
-    expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+      const expiresAt = new Date();
+      const expiresInDays = parseInt(this.configService.get<string>('JWT_REFRESH_EXPIRES_IN_DAYS') || '7');
+      expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
-    await this.prisma.refreshToken.create({
-      data: {
-        token: newRefreshToken,
-        userId: user.id,
-        expiresAt: expiresAt,
-      },
+      await prisma.refreshToken.create({
+        data: {
+          token: newRefreshToken,
+          userId: user.id,
+          expiresAt: expiresAt,
+        },
+      });
+      return { newRefreshToken, expiresAt };
     });
 
     this.logger.log(`Tokens refreshed successfully for user ${user.email}`);

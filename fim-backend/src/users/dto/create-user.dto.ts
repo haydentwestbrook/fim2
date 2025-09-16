@@ -1,5 +1,5 @@
 import { IsEmail, IsString, MinLength, IsOptional, IsEnum } from 'class-validator';
-import { Role } from '../../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client'; // Import Role from Prisma client
 
 export class CreateUserDto {
   @IsEmail()

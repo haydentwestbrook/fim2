@@ -801,6 +801,81 @@ This simple Nginx setup provides the basic security benefits of a reverse proxy,
 
 This comprehensive guide provides all the steps needed to build a production-ready D&D session manager application from scratch.
 
+## Phase 12: Healthcheck Implementation
+
+### 12.1 Backend Healthcheck
+
+**Objective**: Implement a backend healthcheck endpoint to monitor the status of critical services.
+
+**Steps**:
+1.  **Create Health Controller**:
+    *   Generate a new controller and service for health checks:
+        ```bash
+        nest g controller health
+        nest g service health
+        ```
+    *   Implement a `GET /health` endpoint in `fim-backend/src/health/health.controller.ts`.
+2.  **Define Healthcheck Logic**:
+    *   In `fim-backend/src/health/health.service.ts`, implement logic to query the status of critical dependencies (e.g., database connection, external APIs).
+    *   Example: Check database connection using Prisma.
+3.  **Return Structured Response**:
+    *   The `GET /health` endpoint should return a JSON response indicating the overall health status and individual component statuses.
+    *   Example response:
+        ```json
+        {
+          "status": "ok",
+          "info": {
+            "database": {
+              "status": "up"
+            },
+            "externalApi": {
+              "status": "up"
+            }
+          },
+          "error": {},
+          "details": {
+            "database": {
+              "status": "up"
+            },
+            "externalApi": {
+              "status": "up"
+            }
+          }
+        }
+        ```
+
+### 12.2 Frontend Healthcheck Display
+
+**Objective**: Integrate the backend healthcheck into the frontend dashboard to display system status.
+
+**Steps**:
+1.  **Create API Service/Utility**:
+    *   In `fim-frontend/src/lib/api.ts` (or a new utility file), add a function to make API calls to the backend healthcheck endpoint (`GET /health`).
+    *   Example:
+        ```typescript
+        // src/lib/api.ts
+        // ... existing imports and axios instance ...
+
+        export const getHealthStatus = async () => {
+          try {
+            const response = await api.get('/health');
+            return response.data;
+          } catch (error) {
+            console.error('Error fetching health status:', error);
+            throw error;
+          }
+        };
+        ```
+2.  **Modify Dashboard Component**:
+    *   Edit `fim-frontend/src/app/dashboard/page.tsx` to fetch healthcheck data when the component loads. Use `useEffect` or a similar lifecycle hook.
+    *   Store the fetched health status in the component's state.
+3.  **Implement UI Elements**:
+    *   Design and implement UI elements within `fim-frontend/src/app/dashboard/page.tsx` to display the healthcheck information clearly.
+    *   Use status indicators (e.g., colored icons: green for 'up', red for 'down') and detailed messages for each component.
+    *   Consider using existing UI components like `Card.tsx` or `Alert.tsx` for display.
+4.  **Add Refresh Mechanism (Optional)**:
+    *   Implement a button or an automatic refresh interval to update the healthcheck status periodically.
+
 ## Tech Debt
 
 ### Phase 1: Project Setup and Database

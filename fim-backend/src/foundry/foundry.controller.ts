@@ -1,60 +1,91 @@
-import { Controller, Post, UseGuards } from '@nestjs/common';
+import { Controller, Post, UseGuards, Param, Body, Get, Delete } from '@nestjs/common';
+import { CreateFoundryInstanceDto } from './dto/create-foundry-instance.dto';
 import { FoundryService } from './foundry.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles, Role } from '../auth/decorators/roles.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client'; // Import Role from Prisma client
 import { ApiBearerAuth, ApiTags, ApiResponse, ApiOperation } from '@nestjs/swagger';
+import { FoundryInstanceResponseDto } from './dto/foundry-instance-response.dto'; // Import FoundryInstanceResponseDto
+import { FoundryInstanceStatusResponseDto } from './dto/foundry-instance-status-response.dto'; // Import FoundryInstanceStatusResponseDto
 
 @ApiTags('foundry')
 @Controller('foundry')
 export class FoundryController {
   constructor(private readonly foundryService: FoundryService) {}
 
-  @Post('start')
+  @Post(':instanceId/start')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Start Foundry VTT Docker container (Admin only)' })
-  @ApiResponse({ status: 201, description: 'Foundry VTT container is starting.' })
+  @ApiResponse({ status: 201, description: 'Foundry VTT container is starting.', type: FoundryInstanceResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async startFoundry(): Promise<string> {
-    return this.foundryService.startFoundry();
+  async startFoundry(@Param('instanceId') instanceId: string): Promise<FoundryInstanceResponseDto> {
+    return this.foundryService.startFoundry(instanceId);
   }
 
-  @Post('stop')
+  @Post(':instanceId/stop')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Stop Foundry VTT Docker container (Admin only)' })
-  @ApiResponse({ status: 200, description: 'Foundry VTT container is stopping.' })
+  @ApiResponse({ status: 200, description: 'Foundry VTT container is stopping.', type: FoundryInstanceResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async stopFoundry(): Promise<string> {
-    return this.foundryService.stopFoundry();
+  async stopFoundry(@Param('instanceId') instanceId: string): Promise<FoundryInstanceResponseDto> {
+    return this.foundryService.stopFoundry(instanceId);
   }
 
-  @Post('delete')
+  @Delete(':instanceId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete Foundry VTT Docker container and its volume (Admin only)' })
-  @ApiResponse({ status: 200, description: 'Foundry VTT container and its volume are being deleted.' })
+  @ApiResponse({ status: 200, description: 'Foundry VTT instance successfully deleted.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async deleteFoundry(): Promise<string> {
-    return this.foundryService.deleteFoundry();
+  async deleteFoundry(@Param('instanceId') instanceId: string): Promise<void> {
+    return this.foundryService.deleteFoundry(instanceId);
   }
 
-  @Post('status')
+  @Get(':instanceId/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get Foundry VTT Docker container status (Admin only)' })
-  @ApiResponse({ status: 200, description: 'Foundry VTT container status.' })
+  @ApiResponse({ status: 200, description: 'Foundry VTT container status.', type: FoundryInstanceStatusResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async getFoundryStatus(): Promise<string> {
-    return this.foundryService.getFoundryStatus();
+  async getFoundryStatus(@Param('instanceId') instanceId: string): Promise<FoundryInstanceStatusResponseDto> {
+    const status = await this.foundryService.getFoundryStatus(instanceId);
+    return { status };
+  }
+
+  @Post('create')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new Foundry VTT instance (Admin only)' })
+  @ApiResponse({ status: 201, description: 'Foundry VTT instance created.', type: FoundryInstanceResponseDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async createFoundryInstance(@Body() createFoundryInstanceDto: CreateFoundryInstanceDto): Promise<FoundryInstanceResponseDto> {
+    const { name, port } = createFoundryInstanceDto;
+    // ownerId can be optional for now, or retrieved from the request if authentication is set up for it
+    return this.foundryService.createFoundryInstance(name, port);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all Foundry VTT instances (Admin only)' })
+  @ApiResponse({ status: 200, description: 'List of Foundry VTT instances.', type: [FoundryInstanceResponseDto] })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async listFoundryInstances(): Promise<FoundryInstanceResponseDto[]> {
+    return this.foundryService.listFoundryInstances();
   }
 }
