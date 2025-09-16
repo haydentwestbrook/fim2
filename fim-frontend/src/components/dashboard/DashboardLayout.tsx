@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             Dashboard
           </h1>
           <div className="absolute right-0 top-0 mt-6 mr-4">
-            <Button onClick={() => signOut()} className="bg-red-500 hover:bg-red-700 text-white">
+            <Button onClick={() => signOut({ callbackUrl: '/login' })} className="bg-red-500 hover:bg-red-700 text-white">
               Sign Out
             </Button>
           </div>

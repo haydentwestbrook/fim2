@@ -26,6 +26,7 @@ services:
       - FRONTEND_URL=${FRONTEND_URL} # Add this line
     volumes:
       - ${FIM_FOUNDRY_DATA_ROOT:-/var/lib/foundryvtt/data}:/app/foundry-data-root
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - db
     restart: always

@@ -50,14 +50,25 @@ export class FoundryService {
     }
 
     try {
-      const defaultBasePath = '/var/lib/foundryvtt/data';
-      const basePath = process.env.FOUNDRY_DATA_BASE_PATH || defaultBasePath;
-      const hostPath = `${basePath}/${instance.id}`;
-      await fs.mkdir(hostPath, { recursive: true });
-      this.logger.debug(`Ensured host data directory exists: ${hostPath}`);
+      // Path to the data root *inside* the backend container, as mounted by docker-compose.
+      const internalDataRoot = '/app/foundry-data-root';
+      const internalInstancePath = `${internalDataRoot}/${instance.id}`;
 
-      const dockerRunCommand = `docker run -d --name foundry-${instance.name} -p ${instance.port}:3000 -v ${hostPath}:/data foundryvtt/foundryvtt:latest`;
-      const dockerContainerId = await this._executeCommand(dockerRunCommand, `Failed to start Docker container for instance ${instance.name}`);
+      // Path to the data root *on the host*, read from environment variables.
+      const hostDataRoot = process.env.FIM_FOUNDRY_DATA_ROOT || '/var/lib/foundryvtt/data';
+      const hostInstancePath = `${hostDataRoot}/${instance.id}`;
+
+      // Create the directory on the path inside the container, which maps to the host.
+      await fs.mkdir(internalInstancePath, { recursive: true });
+      this.logger.debug(`Ensured host data directory exists at: ${internalInstancePath}`);
+
+      // Use the *host path* for the Docker volume mount command, as the Docker daemon needs it.
+      // The felddy/foundryvtt container will use these environment variables to set the correct permissions on the /data volume.
+      const dockerRunCommand = `docker run -d --name foundry-${instance.name} -p ${instance.port}:30000 -e FOUNDRY_UID=1000 -e FOUNDRY_GID=1000 -v ${hostInstancePath}:/data felddy/foundryvtt:latest`;
+      const dockerContainerId = await this._executeCommand(
+        dockerRunCommand,
+        `Failed to start Docker container for instance ${instance.name}`,
+      );
 
       instance = await this.prisma.foundryInstance.update({
         where: { id: instanceId },

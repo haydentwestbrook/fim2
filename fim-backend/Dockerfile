@@ -4,9 +4,12 @@ FROM node:20-alpine
 # Set the working directory in the container
 WORKDIR /app
 
+# Install Docker CLI
+RUN apk add --no-cache docker-cli
+
 # Copy package.json and package-lock.json
 COPY package*.json ./
-
+ 
 # Install dependencies
 RUN npm install
 
@@ -18,7 +21,7 @@ RUN npx prisma generate
 
 # Apply Prisma migrations
 
-# Build the NestJS application
+# Build the NestJS application 
 RUN npm run build
 
 # Expose the port the app runs on
