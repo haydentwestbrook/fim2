@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException, NotFoundException, BadRequest
 import { LoggerService } from '../common/logger/logger.service';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import * as fs from 'fs/promises'; // Import fs/promises
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, FoundryInstance, FoundryInstanceStatus } from '@prisma/client'; // Import Prisma namespace, FoundryInstance model type, and FoundryInstanceStatus enum
 
@@ -44,12 +45,18 @@ export class FoundryService {
       throw new NotFoundException(`Foundry instance with ID ${instanceId} not found.`);
     }
 
-    if (instance.status === FoundryInstanceStatus.RUNNING || instance.status === FoundryInstanceStatus.CREATING) {
-      throw new BadRequestException(`Foundry instance ${instance.name} is already running or in a creating state.`);
+    if (instance.status === FoundryInstanceStatus.RUNNING) {
+      throw new BadRequestException(`Foundry instance ${instance.name} is already running.`);
     }
 
     try {
-      const dockerRunCommand = `docker run -d --name foundry-${instance.name} -p ${instance.port}:3000 foundryvtt/foundryvtt:latest`;
+      const defaultBasePath = '/var/lib/foundryvtt/data';
+      const basePath = process.env.FOUNDRY_DATA_BASE_PATH || defaultBasePath;
+      const hostPath = `${basePath}/${instance.id}`;
+      await fs.mkdir(hostPath, { recursive: true });
+      this.logger.debug(`Ensured host data directory exists: ${hostPath}`);
+
+      const dockerRunCommand = `docker run -d --name foundry-${instance.name} -p ${instance.port}:3000 -v ${hostPath}:/data foundryvtt/foundryvtt:latest`;
       const dockerContainerId = await this._executeCommand(dockerRunCommand, `Failed to start Docker container for instance ${instance.name}`);
 
       instance = await this.prisma.foundryInstance.update({
@@ -227,21 +234,25 @@ export class FoundryService {
       throw new BadRequestException(`Foundry instance with port '${port}' already in use.`);
     }
 
-    try {
-      const newInstance = await this.prisma.foundryInstance.create({
-        data: {
-          name,
-          port,
-          ownerId,
-          status: FoundryInstanceStatus.CREATING,
-        },
-      });
+    const newInstance = await this.prisma.foundryInstance.create({
+      data: {
+        name,
+        port,
+        ownerId,
+        status: FoundryInstanceStatus.CREATING,
+      },
+    });
+    this.logger.log(`Foundry VTT instance ${name} database record created with ID: ${newInstance.id}`);
 
-      this.logger.log(`Foundry VTT instance ${name} created successfully with ID: ${newInstance.id}`);
-      return newInstance;
+    try {
+      const startedInstance = await this.startFoundry(newInstance.id);
+      this.logger.log(`Foundry VTT instance ${name} container started successfully.`);
+      return startedInstance;
     } catch (error) {
-      this.logger.error(`Error creating Foundry VTT instance ${name}: ${error.message}`);
-      throw error;
+      this.logger.error(`Failed to start container for instance ${name}. Deleting database record to prevent orphaned entry.`);
+      await this.prisma.foundryInstance.delete({ where: { id: newInstance.id } });
+      this.logger.log(`Deleted database record for instance ${name}.`);
+      throw error; // Re-throw the original error from startFoundry
     }
   }
   /**
