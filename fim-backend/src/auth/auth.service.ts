@@ -23,6 +23,27 @@ export class AuthService {
     this.logger.setContext(AuthService.name);
   }
 
+  private convertToSeconds(timeStr: string): number {
+    if (!timeStr) return 0;
+    const lastChar = timeStr.slice(-1);
+    const value = parseInt(timeStr.slice(0, -1), 10);
+
+    if (isNaN(value)) return parseInt(timeStr, 10) || 0;
+
+    switch (lastChar) {
+      case 's':
+        return value;
+      case 'm':
+        return value * 60;
+      case 'h':
+        return value * 3600;
+      case 'd':
+        return value * 86400;
+      default:
+        return parseInt(timeStr, 10) || 0;
+    }
+  }
+
   /**
    * Registers a new user.
    * @param registerUserDto The data for registering the user.
@@ -106,9 +127,11 @@ export class AuthService {
       },
     });
 
+    const expiresInStr = this.configService.get<string>('JWT_EXPIRES_IN') || '3600s';
     return {
       accessToken,
       refreshToken,
+      expiresIn: this.convertToSeconds(expiresInStr),
     };
   }
 
@@ -176,9 +199,11 @@ export class AuthService {
     });
 
     this.logger.log(`Tokens refreshed successfully for user ${user.email}`);
+    const expiresInStr = this.configService.get<string>('JWT_EXPIRES_IN') || '3600s';
     return {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
+      expiresIn: this.convertToSeconds(expiresInStr),
     };
   }
 }
