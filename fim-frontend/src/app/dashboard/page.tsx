@@ -17,7 +17,7 @@ interface HealthStatus {
       status: string;
     };
   };
-  error: any;
+  error: Record<string, unknown> | null;
   details: {
     database: {
       status: string;
@@ -53,7 +53,7 @@ export default function DashboardPage() {
       const data = await getHealthStatus();
       setHealth(data);
     } catch (err) {
-      setError("Failed to fetch health status.");
+      setError(`Failed to fetch health status: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
       setHealth(null);
     } finally {
       setLoading(false);
@@ -76,8 +76,8 @@ export default function DashboardPage() {
       const response = await api.get<FoundryInstance[]>('/foundry', { headers });
       const data = response.data;
       setFoundryInstances(data);
-    } catch (err: any) {
-      setFoundryError(`Failed to fetch Foundry instances: ${err.message}`);
+    } catch (err) {
+      setFoundryError(`Failed to fetch Foundry instances: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
     } finally {
       setLoadingFoundry(false);
     }
@@ -88,12 +88,12 @@ export default function DashboardPage() {
     setFoundryError(null);
     try {
       const headers = await getAuthHeader();
-      const response = await api.post('/foundry/create', { name: newInstanceName, port: parseInt(newInstancePort) }, { headers });
+      await api.post('/foundry/create', { name: newInstanceName, port: parseInt(newInstancePort) }, { headers });
       setNewInstanceName('');
       setNewInstancePort('');
       fetchFoundryInstances();
-    } catch (err: any) {
-      setFoundryError(`Failed to create Foundry instance: ${err.message}`);
+    } catch (err) {
+      setFoundryError(`Failed to create Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
     } finally {
       setLoadingFoundry(false);
     }
@@ -104,10 +104,10 @@ export default function DashboardPage() {
     setFoundryError(null);
     try {
       const headers = await getAuthHeader();
-      const response = await api.post(`/foundry/${instanceId}/start`, {}, { headers });
+      await api.post(`/foundry/${instanceId}/start`, {}, { headers });
       fetchFoundryInstances();
-    } catch (err: any) {
-      setFoundryError(`Failed to start Foundry instance: ${err.message}`);
+    } catch (err) {
+      setFoundryError(`Failed to start Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
     } finally {
       setLoadingFoundry(false);
     }
@@ -118,10 +118,10 @@ export default function DashboardPage() {
     setFoundryError(null);
     try {
       const headers = await getAuthHeader();
-      const response = await api.post(`/foundry/${instanceId}/stop`, {}, { headers });
+      await api.post(`/foundry/${instanceId}/stop`, {}, { headers });
       fetchFoundryInstances();
-    } catch (err: any) {
-      setFoundryError(`Failed to stop Foundry instance: ${err.message}`);
+    } catch (err) {
+      setFoundryError(`Failed to stop Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
     } finally {
       setLoadingFoundry(false);
     }
@@ -132,10 +132,10 @@ export default function DashboardPage() {
     setFoundryError(null);
     try {
       const headers = await getAuthHeader();
-      const response = await api.delete(`/foundry/${instanceId}`, { headers });
+      await api.delete(`/foundry/${instanceId}`, { headers });
       fetchFoundryInstances();
-    } catch (err: any) {
-      setFoundryError(`Failed to delete Foundry instance: ${err.message}`);
+    } catch (err) {
+      setFoundryError(`Failed to delete Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
     } finally {
       setLoadingFoundry(false);
     }
@@ -144,7 +144,7 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchHealth();
     fetchFoundryInstances();
-  }, []);
+  }, [fetchFoundryInstances]);
 
   return (
     <DashboardLayout>

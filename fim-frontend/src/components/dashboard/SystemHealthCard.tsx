@@ -14,7 +14,7 @@ interface HealthStatus {
       status: string;
     };
   };
-  error: any;
+  error: Record<string, unknown> | null;
   details: {
     database: {
       status: string;
