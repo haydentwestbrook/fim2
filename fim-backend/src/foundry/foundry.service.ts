@@ -62,9 +62,14 @@ export class FoundryService {
       await fs.mkdir(internalInstancePath, { recursive: true });
       this.logger.debug(`Ensured host data directory exists at: ${internalInstancePath}`);
 
+      // Change ownership of the directory to the foundry user (1000:1000)
+      const chownCommand = `chown -R 1000:1000 ${internalInstancePath}`;
+      await this._executeCommand(chownCommand, `Failed to change ownership of ${internalInstancePath}`);
+      this.logger.debug(`Changed ownership of ${internalInstancePath} to 1000:1000`);
+
       // Use the *host path* for the Docker volume mount command, as the Docker daemon needs it.
       // The felddy/foundryvtt container will use these environment variables to set the correct permissions on the /data volume.
-      const dockerRunCommand = `docker run -d --name foundry-${instance.name} -p ${instance.port}:30000 -e FOUNDRY_UID=1000 -e FOUNDRY_GID=1000 -v ${hostInstancePath}:/data felddy/foundryvtt:latest`;
+      const dockerRunCommand = `docker run -d --name foundry-${instance.name} -p ${instance.port}:30000 --user 1000:1000 -e FOUNDRY_USERNAME=${process.env.FOUNDRY_USERNAME} -e FOUNDRY_PASSWORD=${process.env.FOUNDRY_PASSWORD} -v ${hostInstancePath}:/data felddy/foundryvtt:latest`;
       const dockerContainerId = await this._executeCommand(
         dockerRunCommand,
         `Failed to start Docker container for instance ${instance.name}`,
