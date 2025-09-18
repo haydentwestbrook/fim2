@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { Role } from '@prisma/client'; // Import Role from Prisma client
 import { CreateUserDto } from './dto/create-user.dto'; // Import CreateUserDto
 import { UpdateUserDto } from './dto/update-user.dto'; // Import UpdateUserDto
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 
 @Injectable()
 export class UsersService {
@@ -56,6 +57,21 @@ export class UsersService {
         firstName: data.firstName,
         lastName: data.lastName,
         password: data.password,
+      },
+    });
+  }
+
+  /**
+   * Updates a user's role.
+   * @param id The ID of the user to update.
+   * @param data The data containing the new role.
+   * @returns The updated user object.
+   */
+  async updateUserRole(id: number, data: UpdateUserRoleDto) {
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        role: data.role,
       },
     });
   }
