@@ -2,14 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { User } from '@/types';
 import api from '@/lib/api';
 import withAuth from '@/hoc/withAuth';
+import { isAxiosError } from 'axios';
 
 const UserManagementPage = () => {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { data: session } = useSession();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +20,11 @@ const UserManagementPage = () => {
         const response = await api.get('/users');
         setUsers(response.data);
       } catch (err) {
-        setError('Failed to fetch users.');
+        if (isAxiosError(err)) {
+          setError(err.response?.data?.message || 'Failed to fetch users.');
+        } else {
+          setError('Failed to fetch users.');
+        }
       } finally {
         setLoading(false);
       }
@@ -43,7 +46,11 @@ const UserManagementPage = () => {
         )
       );
     } catch (err) {
-      setError('Failed to update user role.');
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.message || 'Failed to update user role.');
+      } else {
+        setError('Failed to update user role.');
+      }
       // Optionally, revert the change in the UI
       // For now, we'll just show an error.
     } finally {

@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/Alert';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { isAxiosError } from 'axios';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email({ message: 'Invalid email address' }),
@@ -38,8 +39,12 @@ export default function ForgotPasswordPage() {
     try {
       await api.post('/auth/forgot-password', data);
       setSuccess('If an account with that email exists, a password reset link has been sent.');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'An unexpected error occurred.');
+    } catch (err) {
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.message || 'An unexpected error occurred.');
+      } else {
+        setError('An unexpected error occurred.');
+      }
       console.error(err);
     } finally {
       setIsLoading(false);

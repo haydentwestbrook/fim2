@@ -151,7 +151,7 @@ export default function DashboardPage() {
     return () => {
       clearInterval(healthCheckInterval);
     };
-  }, []);
+  }, [fetchFoundryInstances]);
 
   return (
     <DashboardLayout>

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
 import api from '@/lib/api';
+import { isAxiosError } from 'axios';
 
 const resetPasswordSchema = z
   .object({
@@ -56,10 +57,12 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push('/login');
       }, 3000);
-    } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.message || 'An unexpected error occurred.';
-      setError(errorMessage);
+    } catch (err) {
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.message || 'An unexpected error occurred.');
+      } else {
+        setError('An unexpected error occurred.');
+      }
     }
   };
 
