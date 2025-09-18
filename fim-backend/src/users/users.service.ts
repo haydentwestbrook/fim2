@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { Role } from '@prisma/client'; // Import Role from Prisma client
@@ -67,7 +71,15 @@ export class UsersService {
    * @param data The data containing the new role.
    * @returns The updated user object.
    */
-  async updateUserRole(id: number, data: UpdateUserRoleDto) {
+  async updateUserRole(
+    id: number,
+    data: UpdateUserRoleDto,
+    currentUser: any,
+  ) {
+    if (currentUser.id === id) {
+      throw new ForbiddenException('Admins cannot revoke their own admin status.');
+    }
+
     return this.prisma.user.update({
       where: { id },
       data: {

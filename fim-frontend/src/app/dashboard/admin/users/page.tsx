@@ -13,17 +13,9 @@ const UserManagementPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
-
-    if (session?.user?.role !== 'ADMIN') {
-      // Redirect non-admin users
-      router.push('/dashboard');
-    }
-
     const fetchUsers = async () => {
       try {
         const response = await api.get('/users');
@@ -38,18 +30,24 @@ const UserManagementPage = () => {
     if (session) {
       fetchUsers();
     }
-  }, [session, status, router]);
+  }, [session]);
 
   const handleRoleChange = async (userId: number, newRole: string) => {
+    setUpdatingUserId(userId);
+    setError(null);
     try {
       await api.patch(`/users/${userId}/role`, { role: newRole });
       setUsers(
         users.map((user) =>
-          user.id === userId ? { ...user, role: newRole } : user
+          user.id === userId ? { ...user, role: newRole as 'ADMIN' | 'PLAYER' } : user
         )
       );
     } catch (err) {
       setError('Failed to update user role.');
+      // Optionally, revert the change in the UI
+      // For now, we'll just show an error.
+    } finally {
+      setUpdatingUserId(null);
     }
   };
 
@@ -87,10 +85,12 @@ const UserManagementPage = () => {
                 <select
                   value={user.role}
                   onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                  disabled={user.id === parseInt(session?.user?.id || '', 10) || updatingUserId === user.id}
                 >
                   <option value="PLAYER">Player</option>
                   <option value="ADMIN">Admin</option>
                 </select>
+                {updatingUserId === user.id && <span> Updating...</span>}
               </td>
             </tr>
           ))}

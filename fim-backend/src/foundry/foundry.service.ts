@@ -50,30 +50,40 @@ export class FoundryService {
     }
 
     try {
-      // Path to the data root *inside* the backend container, as mounted by docker-compose.
-      const internalDataRoot = '/app/foundry-data-root';
-      const internalInstancePath = `${internalDataRoot}/${instance.id}`;
+      let dockerContainerId = instance.dockerContainerId;
 
-      // Path to the data root *on the host*, read from environment variables.
-      const hostDataRoot = process.env.FIM_FOUNDRY_DATA_ROOT || '/var/lib/foundryvtt/data';
-      const hostInstancePath = `${hostDataRoot}/${instance.id}`;
+      // If the container already exists, just start it.
+      if (dockerContainerId) {
+        this.logger.log(`Foundry instance ${instance.name} already has a container. Starting it now.`);
+        const dockerStartCommand = `docker start ${dockerContainerId}`;
+        await this._executeCommand(dockerStartCommand, `Failed to start existing Docker container for instance ${instance.name}`);
+      } else {
+        this.logger.log(`Foundry instance ${instance.name} does not have a container. Creating and starting a new one.`);
+        // Path to the data root *inside* the backend container, as mounted by docker-compose.
+        const internalDataRoot = '/app/foundry-data-root';
+        const internalInstancePath = `${internalDataRoot}/${instance.id}`;
 
-      // Create the directory on the path inside the container, which maps to the host.
-      await fs.mkdir(internalInstancePath, { recursive: true });
-      this.logger.debug(`Ensured host data directory exists at: ${internalInstancePath}`);
+        // Path to the data root *on the host*, read from environment variables.
+        const hostDataRoot = process.env.FIM_FOUNDRY_DATA_ROOT || '/var/lib/foundryvtt/data';
+        const hostInstancePath = `${hostDataRoot}/${instance.id}`;
 
-      // Change ownership of the directory to the foundry user (1000:1000)
-      const chownCommand = `chown -R 1000:1000 ${internalInstancePath}`;
-      await this._executeCommand(chownCommand, `Failed to change ownership of ${internalInstancePath}`);
-      this.logger.debug(`Changed ownership of ${internalInstancePath} to 1000:1000`);
+        // Create the directory on the path inside the container, which maps to the host.
+        await fs.mkdir(internalInstancePath, { recursive: true });
+        this.logger.debug(`Ensured host data directory exists at: ${internalInstancePath}`);
 
-      // Use the *host path* for the Docker volume mount command, as the Docker daemon needs it.
-      // The felddy/foundryvtt container will use these environment variables to set the correct permissions on the /data volume.
-      const dockerRunCommand = `docker run -d --name foundry-${instance.name} -p ${instance.port}:30000 --user 1000:1000 -e FOUNDRY_USERNAME=${process.env.FOUNDRY_USERNAME} -e FOUNDRY_PASSWORD=${process.env.FOUNDRY_PASSWORD} -v ${hostInstancePath}:/data felddy/foundryvtt:latest`;
-      const dockerContainerId = await this._executeCommand(
-        dockerRunCommand,
-        `Failed to start Docker container for instance ${instance.name}`,
-      );
+        // Change ownership of the directory to the foundry user (1000:1000)
+        const chownCommand = `chown -R 1000:1000 ${internalInstancePath}`;
+        await this._executeCommand(chownCommand, `Failed to change ownership of ${internalInstancePath}`);
+        this.logger.debug(`Changed ownership of ${internalInstancePath} to 1000:1000`);
+
+        // Use the *host path* for the Docker volume mount command, as the Docker daemon needs it.
+        // The felddy/foundryvtt container will use these environment variables to set the correct permissions on the /data volume.
+        const dockerRunCommand = `docker run -d --name foundry-${instance.name} -p ${instance.port}:30000 --user 1000:1000 -e FOUNDRY_USERNAME=${process.env.FOUNDRY_USERNAME} -e FOUNDRY_PASSWORD=${process.env.FOUNDRY_PASSWORD} -v ${hostInstancePath}:/data felddy/foundryvtt:latest`;
+        dockerContainerId = await this._executeCommand(
+          dockerRunCommand,
+          `Failed to start Docker container for instance ${instance.name}`,
+        );
+      }
 
       instance = await this.prisma.foundryInstance.update({
         where: { id: instanceId },

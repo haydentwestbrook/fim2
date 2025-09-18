@@ -142,16 +142,16 @@ export const authOptions = {
     async jwt({ token, user, account }: { token: JWT; user: NextAuthUser | AdapterUser; account?: Account | null | undefined }) {
       // Initial sign in
       if (account && user) {
-        return {
-          accessToken: user.accessToken,
-          refreshToken: user.refreshToken,
-          accessTokenExpires: user.accessTokenExpires,
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-        };
+        // On initial sign-in, persist the custom user properties to the token
+        token.id = user.id;
+        token.email = user.email;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+        token.role = user.role;
+        token.accessToken = user.accessToken;
+        token.refreshToken = user.refreshToken;
+        token.accessTokenExpires = user.accessTokenExpires;
+        return token;
       }
 
       // Return previous token if the access token has not expired yet

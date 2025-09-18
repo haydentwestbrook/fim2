@@ -50,8 +50,12 @@ export class UsersController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update a user role by ID (Admin only)' })
   @ApiResponse({ status: 200, description: 'User role successfully updated.', type: UserResponseDto })
-  updateUserRole(@Param('id') id: string, @Body() updateUserRoleDto: UpdateUserRoleDto): Promise<UserResponseDto> {
-    return this.usersService.updateUserRole(+id, updateUserRoleDto);
+  updateUserRole(
+    @Param('id') id: string,
+    @Body() updateUserRoleDto: UpdateUserRoleDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<UserResponseDto> {
+    return this.usersService.updateUserRole(+id, updateUserRoleDto, req.user);
   }
 
   @Delete(':id')
