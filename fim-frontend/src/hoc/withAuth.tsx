@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -17,6 +17,8 @@ const withAuth = <P extends object>(
       if (status === 'loading') return; // Do nothing while loading
       if (status === 'unauthenticated') {
         router.push('/login');
+      } else if (session?.error === 'RefreshAccessTokenError') {
+        signOut({ callbackUrl: '/login' });
       } else if (allowedRoles.length > 0 && !allowedRoles.includes(session?.user?.role || '')) {
         router.push('/dashboard'); // Redirect if role is not allowed
       }

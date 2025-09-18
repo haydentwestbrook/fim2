@@ -144,7 +144,14 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchHealth();
     fetchFoundryInstances();
-  }, [fetchFoundryInstances]);
+
+    const interval = parseInt(process.env.NEXT_PUBLIC_HEALTH_CHECK_INTERVAL || '15000', 10);
+    const healthCheckInterval = setInterval(fetchHealth, interval);
+
+    return () => {
+      clearInterval(healthCheckInterval);
+    };
+  }, []);
 
   return (
     <DashboardLayout>
