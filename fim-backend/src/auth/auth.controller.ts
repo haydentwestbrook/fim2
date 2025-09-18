@@ -7,6 +7,8 @@ import { ApiTags, ApiResponse, ApiOperation } from '@nestjs/swagger';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { LoggerService } from '../common/logger/logger.service';
 import { AuthResponseDto } from './dto/auth-response.dto'; // Import AuthResponseDto
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -51,5 +53,29 @@ export class AuthController {
     const result = await this.authService.refreshTokens(refreshTokenDto.refreshToken);
     this.logger.log('Tokens refreshed successfully.');
     return result;
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Initiate password reset' })
+  @ApiResponse({ status: 200, description: 'Password reset email sent.' })
+  @ApiResponse({ status: 400, description: 'Bad Request: Invalid input.' })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<{ message: string }> {
+    this.logger.log(`Received forgot password request for email: ${forgotPasswordDto.email}`);
+    await this.authService.forgotPassword(forgotPasswordDto);
+    this.logger.log(`Forgot password process initiated for email: ${forgotPasswordDto.email}`);
+    return { message: 'If your email is in our system, you will receive a password reset link.' };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset user password' })
+  @ApiResponse({ status: 200, description: 'Password has been successfully reset.' })
+  @ApiResponse({ status: 400, description: 'Bad Request: Invalid or expired token.' })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
+    this.logger.log(`Received request to reset password for token: ${resetPasswordDto.token}`);
+    await this.authService.resetPassword(resetPasswordDto);
+    this.logger.log('Password has been successfully reset.');
+    return { message: 'Password has been successfully reset.' };
   }
 }
