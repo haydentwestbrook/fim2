@@ -1,45 +1,41 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  firstName String   @map("first_name")
-  lastName  String   @map("last_name")
-  role      Role     @default(PLAYER)
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  createdPages Page[]
-  assignments  UserPageAssignment[]
-  sessions     Session[]
+  id                    Int                  @id @default(autoincrement())
+  email                 String               @unique
+  password              String
+  firstName             String               @map("first_name")
+  lastName              String               @map("last_name")
+  role                  Role                 @default(PLAYER)
+  isActive              Boolean              @default(true) @map("is_active")
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+  passwordResetExpires  DateTime?            @map("password_reset_expires")
+  passwordResetToken    String?              @unique @map("password_reset_token")
   ownedFoundryInstances FoundryInstance[]
-
-  passwordResetToken   String?   @unique @map("password_reset_token")
-  passwordResetExpires DateTime? @map("password_reset_expires")
+  createdPages          Page[]
+  sessions              Session[]
+  assignments           UserPageAssignment[]
 
   @@map("users")
 }
 
 model Page {
-  id          Int      @id @default(autoincrement())
+  id          Int                  @id @default(autoincrement())
   title       String
-  url         String @unique
+  url         String               @unique
   description String?
-  isActive    Boolean  @default(true) @map("is_active")
-  createdById Int      @map("created_by")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
+  isActive    Boolean              @default(true) @map("is_active")
+  createdById Int                  @map("created_by")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
   createdBy   User                 @relation(fields: [createdById], references: [id])
   assignments UserPageAssignment[]
 
@@ -52,9 +48,8 @@ model UserPageAssignment {
   pageId     Int      @map("page_id")
   assignedAt DateTime @default(now()) @map("assigned_at")
   assignedBy Int?     @map("assigned_by")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  page       Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, pageId])
   @@map("user_page_assignments")
@@ -65,8 +60,7 @@ model Session {
   userId    Int      @map("user_id")
   expires   DateTime
   createdAt DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
@@ -85,13 +79,12 @@ model FoundryInstance {
   id                String                @id @default(cuid())
   name              String                @unique
   status            FoundryInstanceStatus @default(CREATING)
-  port              Int                   @unique // Host port for Foundry VTT
-  dockerContainerId String?               @unique // Docker container ID once created
-  ownerId           Int?                  // Optional: Link to User for multi-tenancy
+  port              Int                   @unique
+  dockerContainerId String?               @unique
+  ownerId           Int?
   createdAt         DateTime              @default(now()) @map("created_at")
   updatedAt         DateTime              @updatedAt @map("updated_at")
-
-  owner User? @relation(fields: [ownerId], references: [id])
+  owner             User?                 @relation(fields: [ownerId], references: [id])
 
   @@map("foundry_instances")
 }
@@ -107,9 +100,4 @@ enum FoundryInstanceStatus {
   STOPPED
   ERROR
   DELETING
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
