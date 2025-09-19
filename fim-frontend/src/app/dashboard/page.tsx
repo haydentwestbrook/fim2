@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import api, { getHealthStatus } from "../../lib/api";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import SystemHealthCard from "../../components/dashboard/SystemHealthCard";
@@ -50,7 +50,7 @@ export default function DashboardPage() {
   const [loadingFoundry, setLoadingFoundry] = useState(false);
   const [foundryError, setFoundryError] = useState<string | null>(null);
   
-  const fetchHealth = async () => {
+  const fetchHealth = useCallback(async () => {
     const startTime = performance.now();
     log.info('Starting health status fetch');
     setLoading(true);
@@ -69,9 +69,9 @@ export default function DashboardPage() {
       const duration = performance.now() - startTime;
       log.performance('fetchHealth', duration);
     }
-  };
+  }, [log]);
 
-  const fetchFoundryInstances = async () => {
+  const fetchFoundryInstances = useCallback(async () => {
     const startTime = performance.now();
     log.info('Starting Foundry instances fetch');
     setLoadingFoundry(true);
@@ -91,9 +91,9 @@ export default function DashboardPage() {
       const duration = performance.now() - startTime;
       log.performance('fetchFoundryInstances', duration);
     }
-  };
+  }, [log]);
 
-  const createFoundryInstance = async () => {
+  const createFoundryInstance = useCallback(async () => {
     const startTime = performance.now();
     const instanceData = { name: newInstanceName, port: parseInt(newInstancePort) };
     log.userAction('createFoundryInstance', instanceData);
@@ -105,6 +105,7 @@ export default function DashboardPage() {
       setNewInstanceName('');
       setNewInstancePort('');
       log.info('Foundry instance created successfully', instanceData);
+      // Refresh instances after creation
       fetchFoundryInstances();
     } catch (err) {
       const errorMessage = `Failed to create Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`;
@@ -115,9 +116,9 @@ export default function DashboardPage() {
       const duration = performance.now() - startTime;
       log.performance('createFoundryInstance', duration);
     }
-  };
+  }, [newInstanceName, newInstancePort, log, fetchFoundryInstances]);
 
-  const startFoundryInstance = async (instanceId: string) => {
+  const startFoundryInstance = useCallback(async (instanceId: string) => {
     const startTime = performance.now();
     log.userAction('startFoundryInstance', { instanceId });
     setLoadingFoundry(true);
@@ -126,6 +127,7 @@ export default function DashboardPage() {
       // Remove manual headers - let the optimized axios interceptor handle authentication
       await api.post(`/foundry/${instanceId}/start`, {});
       log.info('Foundry instance started successfully', { instanceId });
+      // Refresh instances after start
       fetchFoundryInstances();
     } catch (err) {
       const errorMessage = `Failed to start Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`;
@@ -136,9 +138,9 @@ export default function DashboardPage() {
       const duration = performance.now() - startTime;
       log.performance('startFoundryInstance', duration);
     }
-  };
+  }, [log, fetchFoundryInstances]);
 
-  const stopFoundryInstance = async (instanceId: string) => {
+  const stopFoundryInstance = useCallback(async (instanceId: string) => {
     const startTime = performance.now();
     log.userAction('stopFoundryInstance', { instanceId });
     setLoadingFoundry(true);
@@ -147,6 +149,7 @@ export default function DashboardPage() {
       // Remove manual headers - let the optimized axios interceptor handle authentication
       await api.post(`/foundry/${instanceId}/stop`, {});
       log.info('Foundry instance stopped successfully', { instanceId });
+      // Refresh instances after stop
       fetchFoundryInstances();
     } catch (err) {
       const errorMessage = `Failed to stop Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`;
@@ -157,9 +160,9 @@ export default function DashboardPage() {
       const duration = performance.now() - startTime;
       log.performance('stopFoundryInstance', duration);
     }
-  };
+  }, [log, fetchFoundryInstances]);
 
-  const deleteFoundryInstance = async (instanceId: string) => {
+  const deleteFoundryInstance = useCallback(async (instanceId: string) => {
     const startTime = performance.now();
     log.userAction('deleteFoundryInstance', { instanceId });
     setLoadingFoundry(true);
@@ -168,6 +171,7 @@ export default function DashboardPage() {
       // Remove manual headers - let the optimized axios interceptor handle authentication
       await api.delete(`/foundry/${instanceId}`);
       log.info('Foundry instance deleted successfully', { instanceId });
+      // Refresh instances after deletion
       fetchFoundryInstances();
     } catch (err) {
       const errorMessage = `Failed to delete Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`;
@@ -178,22 +182,38 @@ export default function DashboardPage() {
       const duration = performance.now() - startTime;
       log.performance('deleteFoundryInstance', duration);
     }
-  };
+  }, [log, fetchFoundryInstances]);
  
   useEffect(() => {
     log.info('Dashboard page initialized');
+    
+    // Initial data fetch
     fetchHealth();
     fetchFoundryInstances();
 
-    const interval = parseInt(process.env.NEXT_PUBLIC_HEALTH_CHECK_INTERVAL || '15000', 10);
-    const healthCheckInterval = setInterval(fetchHealth, interval);
-    log.info('Health check interval started', { interval });
+    // Set up health check interval (every 15 seconds)
+    const healthInterval = parseInt(process.env.NEXT_PUBLIC_HEALTH_CHECK_INTERVAL || '15000', 10);
+    const healthCheckInterval = setInterval(() => {
+      log.info('Health check interval triggered');
+      fetchHealth();
+    }, healthInterval);
+    
+    // Set up Foundry instances refresh interval (every 30 seconds)
+    const foundryInterval = 30000; // 30 seconds
+    const foundryRefreshInterval = setInterval(() => {
+      log.info('Foundry instances refresh interval triggered');
+      fetchFoundryInstances();
+    }, foundryInterval);
+    
+    log.info('Intervals started', { healthInterval, foundryInterval });
 
     return () => {
       clearInterval(healthCheckInterval);
-      log.info('Dashboard page cleanup - health check interval cleared');
+      clearInterval(foundryRefreshInterval);
+      log.info('Dashboard page cleanup - all intervals cleared');
     };
-  }, [fetchFoundryInstances]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - only run once on mount
 
   return (
     <>

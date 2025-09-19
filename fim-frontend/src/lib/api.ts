@@ -15,14 +15,16 @@ const api = axios.create({
 // Cache session to avoid repeated calls
 let cachedSession: any = null;
 let sessionCacheTime = 0;
-const SESSION_CACHE_DURATION = 5000; // 5 seconds
+const SESSION_CACHE_DURATION = 30000; // 30 seconds - increased to reduce API calls
 
 const getCachedSession = async () => {
   const now = Date.now();
   if (cachedSession && (now - sessionCacheTime) < SESSION_CACHE_DURATION) {
+    logger.debug('Using cached session', { cacheAge: now - sessionCacheTime }, 'API');
     return cachedSession;
   }
   
+  logger.debug('Fetching fresh session', undefined, 'API');
   cachedSession = await getSession();
   sessionCacheTime = now;
   return cachedSession;

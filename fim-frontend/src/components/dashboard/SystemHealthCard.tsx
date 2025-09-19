@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Card } from "../ui/Card";
 import { Alert, AlertTitle, AlertDescription } from "../ui/Alert";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
@@ -32,7 +32,7 @@ interface SystemHealthCardProps {
   onRefresh: () => void;
 }
 
-export default function SystemHealthCard({ health, loading, error, onRefresh }: SystemHealthCardProps) {
+const SystemHealthCard = memo(function SystemHealthCard({ health, loading, error, onRefresh }: SystemHealthCardProps) {
   return (
     <Card className="mt-8 p-6 w-96">
       <h2 className="text-2xl font-semibold mb-4">System Health</h2>
@@ -71,4 +71,6 @@ export default function SystemHealthCard({ health, loading, error, onRefresh }: 
       )}
     </Card>
   );
-}
+});
+
+export default SystemHealthCard;

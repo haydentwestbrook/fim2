@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Card } from "../ui/Card";
 import { Alert, AlertTitle, AlertDescription } from "../ui/Alert";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
@@ -26,7 +26,7 @@ interface FoundryInstanceManagementProps {
   onDeleteInstance: (instanceId: string) => void;
 }
 
-export default function FoundryInstanceManagement({
+const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
   foundryInstances,
   newInstanceName,
   setNewInstanceName,
@@ -132,4 +132,6 @@ export default function FoundryInstanceManagement({
       </div>
     </Card>
   );
-}
+});
+
+export default FoundryInstanceManagement;
