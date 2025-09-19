@@ -37,7 +37,7 @@ export class FoundryService {
    * @throws BadRequestException if the instance is already running or creating.
    * @throws InternalServerErrorException if Docker command fails.
    */
-  async startFoundry(instanceId: string): Promise<FoundryInstance> {
+  async startFoundry(instanceId: string): Promise<FoundryInstance & { healthStatus: 'healthy' | 'unhealthy' | 'unknown' | 'checking' }> {
     this.logger.log(`Attempting to start Foundry VTT instance with ID: ${instanceId}`);
 
     let instance = await this.prisma.foundryInstance.findUnique({ where: { id: instanceId } });
@@ -94,7 +94,10 @@ export class FoundryService {
       });
 
       this.logger.log(`Foundry VTT instance ${instance.name} started successfully. Container ID: ${dockerContainerId}`);
-      return instance;
+      
+      // Check health status for the started instance
+      const healthStatus = await this.checkInstanceHealth(instance);
+      return { ...instance, healthStatus };
     } catch (error) {
       this.logger.error(`Error starting Foundry VTT instance ${instance.name}: ${error.message}`);
       throw error; // Re-throw the exception from _executeCommand or Prisma
@@ -109,7 +112,7 @@ export class FoundryService {
    * @throws BadRequestException if the instance is not running.
    * @throws InternalServerErrorException if Docker command fails or no container ID is associated.
    */
-  async stopFoundry(instanceId: string): Promise<FoundryInstance> {
+  async stopFoundry(instanceId: string): Promise<FoundryInstance & { healthStatus: 'healthy' | 'unhealthy' | 'unknown' | 'checking' }> {
     this.logger.log(`Attempting to stop Foundry VTT instance with ID: ${instanceId}`);
 
     let instance = await this.prisma.foundryInstance.findUnique({ where: { id: instanceId } });
@@ -137,7 +140,9 @@ export class FoundryService {
       });
 
       this.logger.log(`Foundry VTT instance ${instance.name} stopped successfully.`);
-      return instance;
+      
+      // For stopped instances, health status is always unknown
+      return { ...instance, healthStatus: 'unknown' as const };
     } catch (error) {
       this.logger.error(`Error stopping Foundry VTT instance ${instance.name}: ${error.message}`);
       throw error;
@@ -247,7 +252,7 @@ export class FoundryService {
    * @returns The newly created Foundry VTT instance.
    * @throws BadRequestException if an instance with the same name or port already exists.
    */
-  async createFoundryInstance(name: string, port: number, ownerId?: number): Promise<FoundryInstance> {
+  async createFoundryInstance(name: string, port: number, ownerId?: number): Promise<FoundryInstance & { healthStatus: 'healthy' | 'unhealthy' | 'unknown' | 'checking' }> {
     this.logger.log(`Attempting to create Foundry VTT instance with name: ${name}, port: ${port}`);
 
     const existingInstanceByName = await this.prisma.foundryInstance.findUnique({ where: { name } });
@@ -282,15 +287,53 @@ export class FoundryService {
     }
   }
   /**
-   * Lists all Foundry VTT instances.
-   * @returns A list of all Foundry VTT instances.
+   * Checks the health of a Foundry VTT instance by making an HTTP request to its port.
+   * @param instance The Foundry instance to check
+   * @returns The health status of the instance
    */
-  async listFoundryInstances(): Promise<FoundryInstance[]> {
+  private async checkInstanceHealth(instance: FoundryInstance): Promise<'healthy' | 'unhealthy' | 'unknown'> {
+    try {
+      // Only check health for running instances
+      if (instance.status !== 'RUNNING') {
+        return 'unknown';
+      }
+
+      const axios = require('axios');
+      const response = await axios.get(`http://localhost:${instance.port}`, {
+        timeout: 5000, // 5 second timeout
+        validateStatus: (status) => status < 500, // Accept any status < 500 as healthy
+      });
+      
+      // If we get any response (even 404), the service is running
+      return 'healthy';
+    } catch (error) {
+      this.logger.debug(`Health check failed for instance ${instance.name}: ${error.message}`);
+      return 'unhealthy';
+    }
+  }
+
+  /**
+   * Lists all Foundry VTT instances with their health status.
+   * @returns A list of all Foundry VTT instances with health status.
+   */
+  async listFoundryInstances(): Promise<(FoundryInstance & { healthStatus: 'healthy' | 'unhealthy' | 'unknown' | 'checking' })[]> {
     this.logger.log('Attempting to list all Foundry VTT instances.');
     try {
       const instances = await this.prisma.foundryInstance.findMany();
       this.logger.log(`Found ${instances.length} Foundry VTT instances.`);
-      return instances;
+      
+      // Check health for all instances in parallel
+      const instancesWithHealth = await Promise.all(
+        instances.map(async (instance) => {
+          const healthStatus = await this.checkInstanceHealth(instance);
+          return {
+            ...instance,
+            healthStatus,
+          };
+        })
+      );
+      
+      return instancesWithHealth;
     } catch (error) {
       this.logger.error(`Error listing Foundry VTT instances: ${error.message}`);
       throw error;

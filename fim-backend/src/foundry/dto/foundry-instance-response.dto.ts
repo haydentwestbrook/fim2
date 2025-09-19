@@ -24,4 +24,7 @@ export class FoundryInstanceResponseDto {
 
   @ApiProperty({ example: '2023-01-01T12:00:00.000Z', description: 'The date and time when the instance was last updated' })
   updatedAt: Date;
+
+  @ApiProperty({ example: 'healthy', enum: ['healthy', 'unhealthy', 'unknown', 'checking'], description: 'The health status of the Foundry VTT instance' })
+  healthStatus: 'healthy' | 'unhealthy' | 'unknown' | 'checking';
 }

@@ -35,6 +35,7 @@ interface FoundryInstance {
   name: string;
   port: number;
   status: 'running' | 'stopped' | 'creating' | 'error';
+  healthStatus: 'healthy' | 'unhealthy' | 'unknown' | 'checking';
 }
  
 export default function DashboardPage() {
@@ -49,6 +50,7 @@ export default function DashboardPage() {
   const [newInstancePort, setNewInstancePort] = useState('');
   const [loadingFoundry, setLoadingFoundry] = useState(false);
   const [foundryError, setFoundryError] = useState<string | null>(null);
+  const [healthCheckingInstances, setHealthCheckingInstances] = useState<Set<string>>(new Set());
   
   const fetchHealth = useCallback(async () => {
     const startTime = performance.now();
@@ -68,6 +70,44 @@ export default function DashboardPage() {
       setLoading(false);
       const duration = performance.now() - startTime;
       log.performance('fetchHealth', duration);
+    }
+  }, [log]);
+
+  const checkInstanceHealth = useCallback(async (instanceId: string) => {
+    log.info('Starting health check for instance', { instanceId });
+    setHealthCheckingInstances(prev => new Set(prev).add(instanceId));
+    
+    try {
+      const response = await api.get<FoundryInstance[]>('/foundry');
+      const data = response.data;
+      const updatedInstance = data.find(instance => instance.id === instanceId);
+      
+      if (updatedInstance) {
+        setFoundryInstances(prev => 
+          prev.map(instance => 
+            instance.id === instanceId 
+              ? { ...instance, healthStatus: updatedInstance.healthStatus }
+              : instance
+          )
+        );
+        log.info('Health check completed for instance', { instanceId, healthStatus: updatedInstance.healthStatus });
+      }
+    } catch (err) {
+      log.error('Health check failed for instance', { instanceId, error: err });
+      // Set health status to unknown on error
+      setFoundryInstances(prev => 
+        prev.map(instance => 
+          instance.id === instanceId 
+            ? { ...instance, healthStatus: 'unknown' as const }
+            : instance
+        )
+      );
+    } finally {
+      setHealthCheckingInstances(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(instanceId);
+        return newSet;
+      });
     }
   }, [log]);
 
@@ -191,12 +231,12 @@ export default function DashboardPage() {
     fetchHealth();
     fetchFoundryInstances();
 
-    // Set up health check interval (every 15 seconds)
-    const healthInterval = parseInt(process.env.NEXT_PUBLIC_HEALTH_CHECK_INTERVAL || '15000', 10);
-    const healthCheckInterval = setInterval(() => {
-      log.info('Health check interval triggered');
+    // Set up system health check interval (every 15 seconds)
+    const systemHealthInterval = parseInt(process.env.NEXT_PUBLIC_HEALTH_CHECK_INTERVAL || '15000', 10);
+    const systemHealthCheckInterval = setInterval(() => {
+      log.info('System health check interval triggered');
       fetchHealth();
-    }, healthInterval);
+    }, systemHealthInterval);
     
     // Set up Foundry instances refresh interval (every 30 seconds)
     const foundryInterval = 30000; // 30 seconds
@@ -204,12 +244,25 @@ export default function DashboardPage() {
       log.info('Foundry instances refresh interval triggered');
       fetchFoundryInstances();
     }, foundryInterval);
+
+    // Set up instance health check interval (configurable via environment variable)
+    const instanceHealthCheckInterval = parseInt(process.env.NEXT_PUBLIC_INSTANCE_HEALTH_CHECK_INTERVAL || '60000', 10); // Default 60 seconds
+    const instanceHealthCheckRefreshInterval = setInterval(() => {
+      log.info('Instance health check interval triggered');
+      // Check health for all running instances
+      foundryInstances.forEach(instance => {
+        if (instance.status === 'running' && !healthCheckingInstances.has(instance.id)) {
+          checkInstanceHealth(instance.id);
+        }
+      });
+    }, instanceHealthCheckInterval);
     
-    log.info('Intervals started', { healthInterval, foundryInterval });
+    log.info('Intervals started', { systemHealthInterval, foundryInterval, instanceHealthCheckInterval });
 
     return () => {
-      clearInterval(healthCheckInterval);
+      clearInterval(systemHealthCheckInterval);
       clearInterval(foundryRefreshInterval);
+      clearInterval(instanceHealthCheckRefreshInterval);
       log.info('Dashboard page cleanup - all intervals cleared');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -248,10 +301,12 @@ export default function DashboardPage() {
                 setNewInstancePort={setNewInstancePort}
                 loadingFoundry={loadingFoundry}
                 foundryError={foundryError}
+                healthCheckingInstances={healthCheckingInstances}
                 onCreateInstance={createFoundryInstance}
                 onStartInstance={startFoundryInstance}
                 onStopInstance={stopFoundryInstance}
                 onDeleteInstance={deleteFoundryInstance}
+                onCheckHealth={checkInstanceHealth}
               />
             </div>
           </div>

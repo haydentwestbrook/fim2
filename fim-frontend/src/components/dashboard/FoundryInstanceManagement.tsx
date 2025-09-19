@@ -10,6 +10,7 @@ interface FoundryInstance {
   name: string;
   port: number;
   status: 'running' | 'stopped' | 'creating' | 'error';
+  healthStatus: 'healthy' | 'unhealthy' | 'unknown' | 'checking';
 }
 
 interface FoundryInstanceManagementProps {
@@ -20,10 +21,12 @@ interface FoundryInstanceManagementProps {
   setNewInstancePort: (port: string) => void;
   loadingFoundry: boolean;
   foundryError: string | null;
+  healthCheckingInstances: Set<string>;
   onCreateInstance: () => void;
   onStartInstance: (instanceId: string) => void;
   onStopInstance: (instanceId: string) => void;
   onDeleteInstance: (instanceId: string) => void;
+  onCheckHealth: (instanceId: string) => void;
 }
 
 const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
@@ -34,10 +37,12 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
   setNewInstancePort,
   loadingFoundry,
   foundryError,
+  healthCheckingInstances,
   onCreateInstance,
   onStartInstance,
   onStopInstance,
   onDeleteInstance,
+  onCheckHealth,
 }: FoundryInstanceManagementProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -67,6 +72,45 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
       default:
         return '?';
     }
+  };
+
+  const getHealthStatusColor = (healthStatus: string) => {
+    switch (healthStatus) {
+      case 'healthy':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'unhealthy':
+        return 'text-red-600 bg-red-50 border-red-200';
+      case 'checking':
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'unknown':
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  const getHealthStatusIcon = (healthStatus: string) => {
+    switch (healthStatus) {
+      case 'healthy':
+        return '✓';
+      case 'unhealthy':
+        return '✗';
+      case 'checking':
+        return '⟳';
+      case 'unknown':
+      default:
+        return '?';
+    }
+  };
+
+  const getCombinedStatusDisplay = (instance: FoundryInstance) => {
+    const statusText = instance.status.toUpperCase();
+    const healthText = instance.healthStatus.toUpperCase();
+    const isChecking = healthCheckingInstances.has(instance.id);
+    
+    if (instance.status === 'running') {
+      return `${statusText} (${isChecking ? 'CHECKING...' : healthText})`;
+    }
+    return statusText;
   };
 
   return (
@@ -176,10 +220,22 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
                         {instance.port}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(instance.status)}`}>
-                          <span className="mr-1">{getStatusIcon(instance.status)}</span>
-                          {instance.status.toUpperCase()}
-                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(instance.status)}`}>
+                            <span className="mr-1">{getStatusIcon(instance.status)}</span>
+                            {getCombinedStatusDisplay(instance)}
+                          </span>
+                          {instance.status === 'running' && (
+                            <Button
+                              onClick={() => onCheckHealth(instance.id)}
+                              disabled={healthCheckingInstances.has(instance.id)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 text-xs rounded-md transition-colors"
+                              title="Check Health"
+                            >
+                              {healthCheckingInstances.has(instance.id) ? '⟳' : '↻'}
+                            </Button>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                         <Button
@@ -219,10 +275,22 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
                       <h4 className="text-sm font-medium text-gray-900">{instance.name}</h4>
                       <p className="text-xs text-gray-500">Port: {instance.port}</p>
                     </div>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(instance.status)}`}>
-                      <span className="mr-1">{getStatusIcon(instance.status)}</span>
-                      {instance.status.toUpperCase()}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(instance.status)}`}>
+                        <span className="mr-1">{getStatusIcon(instance.status)}</span>
+                        {getCombinedStatusDisplay(instance)}
+                      </span>
+                      {instance.status === 'running' && (
+                        <Button
+                          onClick={() => onCheckHealth(instance.id)}
+                          disabled={healthCheckingInstances.has(instance.id)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 text-xs rounded-md transition-colors"
+                          title="Check Health"
+                        >
+                          {healthCheckingInstances.has(instance.id) ? '⟳' : '↻'}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div className="flex space-x-2">
                     <Button
