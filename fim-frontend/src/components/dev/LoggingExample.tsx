@@ -6,7 +6,7 @@ import useLogger from '../../lib/useLogger';
 export default function LoggingExample() {
   const log = useLogger({ component: 'LoggingExample' });
   const [count, setCount] = useState(0);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<unknown>(null);
 
   const handleIncrement = () => {
     const oldCount = count;
@@ -102,7 +102,7 @@ export default function LoggingExample() {
           </button>
         </div>
 
-        {data && (
+        {data != null && (
           <div className="p-3 bg-green-100 rounded border">
             <p className="text-sm font-medium">Fetched Data:</p>
             <pre className="text-xs mt-1">{JSON.stringify(data, null, 2)}</pre>
@@ -114,7 +114,7 @@ export default function LoggingExample() {
           <ul className="list-disc list-inside mt-1 space-y-1">
             <li><code>fimDev.enable()</code> - Enable development mode</li>
             <li><code>fimDev.logs()</code> - View all logs</li>
-            <li><code>fimDev.filter('error')</code> - Filter error logs</li>
+            <li><code>fimDev.filter(&apos;error&apos;)</code> - Filter error logs</li>
             <li><code>fimDev.export()</code> - Export logs as JSON</li>
             <li><code>fimDev.help()</code> - Show all commands</li>
           </ul>

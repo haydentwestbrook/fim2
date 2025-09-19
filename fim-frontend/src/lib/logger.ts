@@ -5,7 +5,7 @@ export interface LogEntry {
   timestamp: Date;
   level: LogLevel;
   message: string;
-  data?: any;
+  data?: unknown;
   component?: string;
   action?: string;
   stack?: string;
@@ -50,7 +50,7 @@ class Logger {
     return messageLevelIndex >= currentLevelIndex;
   }
 
-  private addLog(level: LogLevel, message: string, data?: any, component?: string, action?: string): void {
+  private addLog(level: LogLevel, message: string, data?: unknown, component?: string, action?: string): void {
     if (!this.shouldLog(level)) return;
 
     const logEntry: LogEntry = {
@@ -115,24 +115,24 @@ class Logger {
   }
 
   // Public logging methods
-  debug(message: string, data?: any, component?: string, action?: string): void {
+  debug(message: string, data?: unknown, component?: string, action?: string): void {
     this.addLog('debug', message, data, component, action);
   }
 
-  info(message: string, data?: any, component?: string, action?: string): void {
+  info(message: string, data?: unknown, component?: string, action?: string): void {
     this.addLog('info', message, data, component, action);
   }
 
-  warn(message: string, data?: any, component?: string, action?: string): void {
+  warn(message: string, data?: unknown, component?: string, action?: string): void {
     this.addLog('warn', message, data, component, action);
   }
 
-  error(message: string, data?: any, component?: string, action?: string): void {
+  error(message: string, data?: unknown, component?: string, action?: string): void {
     this.addLog('error', message, data, component, action);
   }
 
   // API call logging
-  apiCall(method: string, url: string, data?: any, response?: any, error?: any): void {
+  apiCall(method: string, url: string, data?: unknown, response?: unknown, error?: unknown): void {
     if (error) {
       this.error(`API ${method} ${url} failed`, { error, requestData: data }, 'API');
     } else {
@@ -141,7 +141,7 @@ class Logger {
   }
 
   // Component lifecycle logging
-  componentMount(componentName: string, props?: any): void {
+  componentMount(componentName: string, props?: unknown): void {
     this.debug(`Component ${componentName} mounted`, props, componentName, 'MOUNT');
   }
 
@@ -149,22 +149,22 @@ class Logger {
     this.debug(`Component ${componentName} unmounted`, undefined, componentName, 'UNMOUNT');
   }
 
-  componentUpdate(componentName: string, prevProps?: any, nextProps?: any): void {
+  componentUpdate(componentName: string, prevProps?: unknown, nextProps?: unknown): void {
     this.debug(`Component ${componentName} updated`, { prevProps, nextProps }, componentName, 'UPDATE');
   }
 
   // User action logging
-  userAction(action: string, data?: any, component?: string): void {
+  userAction(action: string, data?: unknown, component?: string): void {
     this.info(`User action: ${action}`, data, component, 'USER_ACTION');
   }
 
   // State change logging
-  stateChange(component: string, stateName: string, oldValue: any, newValue: any): void {
+  stateChange(component: string, stateName: string, oldValue: unknown, newValue: unknown): void {
     this.debug(`State change: ${stateName}`, { oldValue, newValue }, component, 'STATE_CHANGE');
   }
 
   // Performance logging
-  performance(operation: string, duration: number, data?: any, component?: string): void {
+  performance(operation: string, duration: number, data?: unknown, component?: string): void {
     this.info(`Performance: ${operation} took ${duration}ms`, data, component, 'PERFORMANCE');
   }
 
@@ -243,9 +243,9 @@ const logger = new Logger();
 export const initializeGlobalLogger = () => {
   if (typeof window !== 'undefined') {
     // Make logger instance available globally
-    (window as any).__fimLogger = logger;
+    (window as Window & { __fimLogger?: Logger }).__fimLogger = logger;
     
-    (window as any).fimDev = {
+    (window as Window & { fimDev?: Record<string, unknown> }).fimDev = {
       enable: () => logger.enableDevelopmentMode(),
       disable: () => logger.disableDevelopmentMode(),
       logs: () => logger.getLogs(),
@@ -296,7 +296,7 @@ FIM Development Logger Commands:
     console.log('FIM Development Logger loaded. Type "fimDev.help()" for available commands.');
     
     // Debug: Log that the global object was created
-    console.log('fimDev object created:', typeof (window as any).fimDev);
+    console.log('fimDev object created:', typeof (window as Window & { fimDev?: Record<string, unknown> }).fimDev);
     
     return true;
   }

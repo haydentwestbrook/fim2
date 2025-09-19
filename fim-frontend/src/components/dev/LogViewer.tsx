@@ -204,7 +204,7 @@ export default function LogViewer({ isVisible, onClose }: LogViewerProps) {
                   <div className="mt-1 text-sm">
                     {log.message}
                   </div>
-                  {log.data && (
+                  {log.data != null && (
                     <details className="mt-2">
                       <summary className="text-xs text-gray-600 cursor-pointer">
                         Data

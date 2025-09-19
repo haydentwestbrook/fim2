@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import logger, { LogEntry } from './logger';
+import logger from './logger';
 
 export interface UseLoggerOptions {
   component: string;
@@ -10,7 +10,7 @@ export interface UseLoggerOptions {
 
 export function useLogger(options: UseLoggerOptions) {
   const { component, logMount = true, logUnmount = true, logUpdates = false } = options;
-  const prevPropsRef = useRef<any>(null);
+  const prevPropsRef = useRef<unknown>(null);
 
   // Log component mount
   useEffect(() => {
@@ -34,21 +34,21 @@ export function useLogger(options: UseLoggerOptions) {
   });
 
   return {
-    debug: (message: string, data?: any, action?: string) => 
+    debug: (message: string, data?: unknown, action?: string) => 
       logger.debug(message, data, component, action),
-    info: (message: string, data?: any, action?: string) => 
+    info: (message: string, data?: unknown, action?: string) => 
       logger.info(message, data, component, action),
-    warn: (message: string, data?: any, action?: string) => 
+    warn: (message: string, data?: unknown, action?: string) => 
       logger.warn(message, data, component, action),
-    error: (message: string, data?: any, action?: string) => 
+    error: (message: string, data?: unknown, action?: string) => 
       logger.error(message, data, component, action),
-    userAction: (action: string, data?: any) => 
+    userAction: (action: string, data?: unknown) => 
       logger.userAction(action, data, component),
-    stateChange: (stateName: string, oldValue: any, newValue: any) => 
+    stateChange: (stateName: string, oldValue: unknown, newValue: unknown) => 
       logger.stateChange(component, stateName, oldValue, newValue),
-    performance: (operation: string, duration: number, data?: any) => 
+    performance: (operation: string, duration: number, data?: unknown) => 
       logger.performance(operation, duration, data, component),
-    apiCall: (method: string, url: string, data?: any, response?: any, error?: any) => 
+    apiCall: (method: string, url: string, data?: unknown, response?: unknown, error?: unknown) => 
       logger.apiCall(method, url, data, response, error),
   };
 }

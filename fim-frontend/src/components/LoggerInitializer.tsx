@@ -9,13 +9,14 @@ export default function LoggerInitializer() {
     const success = initializeGlobalLogger();
     if (success) {
       console.log('Logger initialized successfully');
-      console.log('fimDev available:', typeof (window as any).fimDev);
+      console.log('fimDev available:', typeof (window as Window & { fimDev?: Record<string, unknown> }).fimDev);
       
       // Test the logger
       setTimeout(() => {
-        if ((window as any).fimDev) {
+        const fimDev = (window as Window & { fimDev?: Record<string, unknown> }).fimDev;
+        if (fimDev) {
           console.log('Testing fimDev...');
-          (window as any).fimDev.info = (window as any).fimDev.info || (() => console.log('fimDev.info not available'));
+          fimDev.info = fimDev.info || (() => console.log('fimDev.info not available'));
         }
       }, 100);
     } else {

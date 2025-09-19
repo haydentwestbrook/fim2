@@ -13,7 +13,11 @@ const api = axios.create({
 });
 
 // Cache session to avoid repeated calls
-let cachedSession: any = null;
+interface Session {
+  accessToken?: string;
+}
+
+let cachedSession: Session | null = null;
 let sessionCacheTime = 0;
 const SESSION_CACHE_DURATION = 30000; // 30 seconds - increased to reduce API calls
 
@@ -25,7 +29,7 @@ const getCachedSession = async () => {
   }
   
   logger.debug('Fetching fresh session', undefined, 'API');
-  cachedSession = await getSession();
+  cachedSession = await getSession() as Session;
   sessionCacheTime = now;
   return cachedSession;
 };
@@ -38,7 +42,7 @@ export const clearSessionCache = () => {
 
 // Function to force refresh session cache (useful when session might have changed)
 export const refreshSessionCache = async () => {
-  cachedSession = await getSession();
+  cachedSession = await getSession() as Session;
   sessionCacheTime = Date.now();
   return cachedSession;
 };
@@ -62,7 +66,7 @@ api.interceptors.request.use(
     );
     
     // Store start time for performance measurement
-    (config as any).__startTime = startTime;
+    (config as unknown as Record<string, unknown>).__startTime = startTime;
     
     return config;
   },
@@ -75,7 +79,7 @@ api.interceptors.request.use(
 // Response interceptor for logging
 api.interceptors.response.use(
   (response) => {
-    const startTime = (response.config as any).__startTime;
+    const startTime = (response.config as unknown as Record<string, unknown>).__startTime as number;
     const duration = startTime ? performance.now() - startTime : 0;
     
     logger.apiCall(
@@ -98,7 +102,7 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    const startTime = (error.config as any)?.__startTime;
+    const startTime = (error.config as unknown as Record<string, unknown>)?.__startTime as number;
     const duration = startTime ? performance.now() - startTime : 0;
     
     logger.apiCall(
