@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import AuthSessionProvider from '@/components/AuthSessionProvider';
 import { cn } from '@/lib/utils';
+import LoggerInitializer from '@/components/LoggerInitializer';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -37,6 +38,7 @@ export default async function RootLayout({
         )}
         suppressHydrationWarning={true}
       >
+        <LoggerInitializer />
         <AuthSessionProvider session={session}>{children}</AuthSessionProvider>
       </body>
     </html>

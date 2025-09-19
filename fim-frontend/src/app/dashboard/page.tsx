@@ -1,11 +1,13 @@
 'use client';
 
-import { getSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import api, { getHealthStatus } from "../../lib/api";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import SystemHealthCard from "../../components/dashboard/SystemHealthCard";
 import FoundryInstanceManagement from "../../components/dashboard/FoundryInstanceManagement";
+import useLogger from "../../lib/useLogger";
+import DevModeIndicator from "../../components/dev/DevModeIndicator";
+import LoggingExample from "../../components/dev/LoggingExample";
 
 interface HealthStatus {
   status: string;
@@ -36,6 +38,8 @@ interface FoundryInstance {
 }
  
 export default function DashboardPage() {
+  const log = useLogger({ component: 'DashboardPage' });
+  
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,135 +49,177 @@ export default function DashboardPage() {
   const [newInstancePort, setNewInstancePort] = useState('');
   const [loadingFoundry, setLoadingFoundry] = useState(false);
   const [foundryError, setFoundryError] = useState<string | null>(null);
-
+  
   const fetchHealth = async () => {
+    const startTime = performance.now();
+    log.info('Starting health status fetch');
     setLoading(true);
     setError(null);
     try {
       const data = await getHealthStatus();
       setHealth(data);
+      log.info('Health status fetched successfully', data);
     } catch (err) {
-      setError(`Failed to fetch health status: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
+      const errorMessage = `Failed to fetch health status: ${err instanceof Error ? err.message : 'An unknown error occurred'}`;
+      setError(errorMessage);
       setHealth(null);
+      log.error('Health status fetch failed', { error: err, message: errorMessage });
     } finally {
       setLoading(false);
+      const duration = performance.now() - startTime;
+      log.performance('fetchHealth', duration);
     }
-  };
-
-  const getAuthHeader = async (): Promise<Record<string, string>> => {
-    const session = await getSession();
-    if (session?.accessToken) {
-      return { 'Authorization': `Bearer ${session.accessToken}` };
-    }
-    return {};
   };
 
   const fetchFoundryInstances = async () => {
+    const startTime = performance.now();
+    log.info('Starting Foundry instances fetch');
     setLoadingFoundry(true);
     setFoundryError(null);
     try {
-      const headers = await getAuthHeader();
-      const response = await api.get<FoundryInstance[]>('/foundry', { headers });
+      // Remove manual headers - let the optimized axios interceptor handle authentication
+      const response = await api.get<FoundryInstance[]>('/foundry');
       const data = response.data;
       setFoundryInstances(data);
+      log.info('Foundry instances fetched successfully', { count: data.length, instances: data });
     } catch (err) {
-      setFoundryError(`Failed to fetch Foundry instances: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
+      const errorMessage = `Failed to fetch Foundry instances: ${err instanceof Error ? err.message : 'An unknown error occurred'}`;
+      setFoundryError(errorMessage);
+      log.error('Foundry instances fetch failed', { error: err, message: errorMessage });
     } finally {
       setLoadingFoundry(false);
+      const duration = performance.now() - startTime;
+      log.performance('fetchFoundryInstances', duration);
     }
   };
 
   const createFoundryInstance = async () => {
+    const startTime = performance.now();
+    const instanceData = { name: newInstanceName, port: parseInt(newInstancePort) };
+    log.userAction('createFoundryInstance', instanceData);
     setLoadingFoundry(true);
     setFoundryError(null);
     try {
-      const headers = await getAuthHeader();
-      await api.post('/foundry/create', { name: newInstanceName, port: parseInt(newInstancePort) }, { headers });
+      // Remove manual headers - let the optimized axios interceptor handle authentication
+      await api.post('/foundry/create', instanceData);
       setNewInstanceName('');
       setNewInstancePort('');
+      log.info('Foundry instance created successfully', instanceData);
       fetchFoundryInstances();
     } catch (err) {
-      setFoundryError(`Failed to create Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
+      const errorMessage = `Failed to create Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`;
+      setFoundryError(errorMessage);
+      log.error('Foundry instance creation failed', { error: err, message: errorMessage, instanceData });
     } finally {
       setLoadingFoundry(false);
+      const duration = performance.now() - startTime;
+      log.performance('createFoundryInstance', duration);
     }
   };
 
   const startFoundryInstance = async (instanceId: string) => {
+    const startTime = performance.now();
+    log.userAction('startFoundryInstance', { instanceId });
     setLoadingFoundry(true);
     setFoundryError(null);
     try {
-      const headers = await getAuthHeader();
-      await api.post(`/foundry/${instanceId}/start`, {}, { headers });
+      // Remove manual headers - let the optimized axios interceptor handle authentication
+      await api.post(`/foundry/${instanceId}/start`, {});
+      log.info('Foundry instance started successfully', { instanceId });
       fetchFoundryInstances();
     } catch (err) {
-      setFoundryError(`Failed to start Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
+      const errorMessage = `Failed to start Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`;
+      setFoundryError(errorMessage);
+      log.error('Foundry instance start failed', { error: err, message: errorMessage, instanceId });
     } finally {
       setLoadingFoundry(false);
+      const duration = performance.now() - startTime;
+      log.performance('startFoundryInstance', duration);
     }
   };
 
   const stopFoundryInstance = async (instanceId: string) => {
+    const startTime = performance.now();
+    log.userAction('stopFoundryInstance', { instanceId });
     setLoadingFoundry(true);
     setFoundryError(null);
     try {
-      const headers = await getAuthHeader();
-      await api.post(`/foundry/${instanceId}/stop`, {}, { headers });
+      // Remove manual headers - let the optimized axios interceptor handle authentication
+      await api.post(`/foundry/${instanceId}/stop`, {});
+      log.info('Foundry instance stopped successfully', { instanceId });
       fetchFoundryInstances();
     } catch (err) {
-      setFoundryError(`Failed to stop Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
+      const errorMessage = `Failed to stop Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`;
+      setFoundryError(errorMessage);
+      log.error('Foundry instance stop failed', { error: err, message: errorMessage, instanceId });
     } finally {
       setLoadingFoundry(false);
+      const duration = performance.now() - startTime;
+      log.performance('stopFoundryInstance', duration);
     }
   };
 
   const deleteFoundryInstance = async (instanceId: string) => {
+    const startTime = performance.now();
+    log.userAction('deleteFoundryInstance', { instanceId });
     setLoadingFoundry(true);
     setFoundryError(null);
     try {
-      const headers = await getAuthHeader();
-      await api.delete(`/foundry/${instanceId}`, { headers });
+      // Remove manual headers - let the optimized axios interceptor handle authentication
+      await api.delete(`/foundry/${instanceId}`);
+      log.info('Foundry instance deleted successfully', { instanceId });
       fetchFoundryInstances();
     } catch (err) {
-      setFoundryError(`Failed to delete Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
+      const errorMessage = `Failed to delete Foundry instance: ${err instanceof Error ? err.message : 'An unknown error occurred'}`;
+      setFoundryError(errorMessage);
+      log.error('Foundry instance deletion failed', { error: err, message: errorMessage, instanceId });
     } finally {
       setLoadingFoundry(false);
+      const duration = performance.now() - startTime;
+      log.performance('deleteFoundryInstance', duration);
     }
   };
  
   useEffect(() => {
+    log.info('Dashboard page initialized');
     fetchHealth();
     fetchFoundryInstances();
 
     const interval = parseInt(process.env.NEXT_PUBLIC_HEALTH_CHECK_INTERVAL || '15000', 10);
     const healthCheckInterval = setInterval(fetchHealth, interval);
+    log.info('Health check interval started', { interval });
 
     return () => {
       clearInterval(healthCheckInterval);
+      log.info('Dashboard page cleanup - health check interval cleared');
     };
   }, [fetchFoundryInstances]);
 
   return (
-    <DashboardLayout>
-      <SystemHealthCard
-        health={health}
-        loading={loading}
-        error={error}
-        onRefresh={fetchHealth}
-      />
-      <FoundryInstanceManagement
-        foundryInstances={foundryInstances}
-        newInstanceName={newInstanceName}
-        setNewInstanceName={setNewInstanceName}
-        newInstancePort={newInstancePort}
-        setNewInstancePort={setNewInstancePort}
-        loadingFoundry={loadingFoundry}
-        foundryError={foundryError}
-        onCreateInstance={createFoundryInstance}
-        onStartInstance={startFoundryInstance}
-        onStopInstance={stopFoundryInstance}
-        onDeleteInstance={deleteFoundryInstance}
-      />
-    </DashboardLayout>
+    <>
+      <DashboardLayout>
+        <SystemHealthCard
+          health={health}
+          loading={loading}
+          error={error}
+          onRefresh={fetchHealth}
+        />
+        <FoundryInstanceManagement
+          foundryInstances={foundryInstances}
+          newInstanceName={newInstanceName}
+          setNewInstanceName={setNewInstanceName}
+          newInstancePort={newInstancePort}
+          setNewInstancePort={setNewInstancePort}
+          loadingFoundry={loadingFoundry}
+          foundryError={foundryError}
+          onCreateInstance={createFoundryInstance}
+          onStartInstance={startFoundryInstance}
+          onStopInstance={stopFoundryInstance}
+          onDeleteInstance={deleteFoundryInstance}
+        />
+        <LoggingExample />
+      </DashboardLayout>
+      <DevModeIndicator />
+    </>
   );
 }
