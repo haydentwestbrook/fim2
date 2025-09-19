@@ -3,11 +3,11 @@
 import { useEffect, useState, useCallback } from "react";
 import api, { getHealthStatus } from "../../lib/api";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
+import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import SystemHealthCard from "../../components/dashboard/SystemHealthCard";
 import FoundryInstanceManagement from "../../components/dashboard/FoundryInstanceManagement";
 import useLogger from "../../lib/useLogger";
 import DevModeIndicator from "../../components/dev/DevModeIndicator";
-import LoggingExample from "../../components/dev/LoggingExample";
 
 interface HealthStatus {
   status: string;
@@ -218,26 +218,44 @@ export default function DashboardPage() {
   return (
     <>
       <DashboardLayout>
-        <SystemHealthCard
-          health={health}
-          loading={loading}
-          error={error}
-          onRefresh={fetchHealth}
-        />
-        <FoundryInstanceManagement
-          foundryInstances={foundryInstances}
-          newInstanceName={newInstanceName}
-          setNewInstanceName={setNewInstanceName}
-          newInstancePort={newInstancePort}
-          setNewInstancePort={setNewInstancePort}
-          loadingFoundry={loadingFoundry}
-          foundryError={foundryError}
-          onCreateInstance={createFoundryInstance}
-          onStartInstance={startFoundryInstance}
-          onStopInstance={stopFoundryInstance}
-          onDeleteInstance={deleteFoundryInstance}
-        />
-        <LoggingExample />
+        <div className="space-y-8">
+          {/* Dashboard Header with Stats */}
+          <DashboardHeader
+            health={health}
+            foundryInstances={foundryInstances}
+            loading={loading}
+          />
+
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* System Health - Takes 1 column on XL screens, full width on smaller */}
+            <div className="xl:col-span-1">
+              <SystemHealthCard
+                health={health}
+                loading={loading}
+                error={error}
+                onRefresh={fetchHealth}
+              />
+            </div>
+
+            {/* Foundry Instance Management - Takes 2 columns on XL screens, full width on smaller */}
+            <div className="xl:col-span-2">
+              <FoundryInstanceManagement
+                foundryInstances={foundryInstances}
+                newInstanceName={newInstanceName}
+                setNewInstanceName={setNewInstanceName}
+                newInstancePort={newInstancePort}
+                setNewInstancePort={setNewInstancePort}
+                loadingFoundry={loadingFoundry}
+                foundryError={foundryError}
+                onCreateInstance={createFoundryInstance}
+                onStartInstance={startFoundryInstance}
+                onStopInstance={stopFoundryInstance}
+                onDeleteInstance={deleteFoundryInstance}
+              />
+            </div>
+          </div>
+        </div>
       </DashboardLayout>
       <DevModeIndicator />
     </>

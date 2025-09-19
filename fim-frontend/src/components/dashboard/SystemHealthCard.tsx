@@ -33,40 +33,113 @@ interface SystemHealthCardProps {
 }
 
 const SystemHealthCard = memo(function SystemHealthCard({ health, loading, error, onRefresh }: SystemHealthCardProps) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ok':
+      case 'up':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'error':
+      case 'down':
+        return 'text-red-600 bg-red-50 border-red-200';
+      default:
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'ok':
+      case 'up':
+        return '✓';
+      case 'error':
+      case 'down':
+        return '✗';
+      default:
+        return '⚠';
+    }
+  };
+
   return (
-    <Card className="mt-8 p-6 w-96">
-      <h2 className="text-2xl font-semibold mb-4">System Health</h2>
-      {loading && <LoadingSpinner />}
+    <Card className="p-6 h-full">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">System Health</h2>
+        <Button
+          onClick={onRefresh}
+          disabled={loading}
+          className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+        >
+          {loading ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <LoadingSpinner />
+        </div>
+      )}
+
       {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Connection Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      {health && (
-        <div>
-          <p className="text-lg">Overall Status: <span className={`font-bold ${health.status === 'ok' ? 'text-green-500' : 'text-red-500'}`}>{health.status.toUpperCase()}</span></p>
-          <div className="mt-4">
-            <h3 className="text-xl font-medium">Components:</h3>
-            <ul className="list-disc list-inside">
-              <li>
-                Database: <span className={`font-bold ${health.info.database.status === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                  {health.info.database.status.toUpperCase()}
-                </span>
-              </li>
-              <li>
-                Foundry: <span className={`font-bold ${health.info.foundry.status === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                  {health.info.foundry.status.toUpperCase()}
-                </span>
-              </li>
-            </ul>
+
+      {health && !loading && (
+        <div className="space-y-4">
+          {/* Overall Status */}
+          <div className={`p-4 rounded-lg border-l-4 ${getStatusColor(health.status)}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-gray-900">Overall System</h3>
+                <p className="text-sm text-gray-600">All components status</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">{getStatusIcon(health.status)}</span>
+                <span className="font-semibold">{health.status.toUpperCase()}</span>
+              </div>
+            </div>
           </div>
-          <Button
-            onClick={onRefresh}
-            className="mt-4 px-4 py-2 font-bold text-white bg-gray-500 rounded hover:bg-gray-700"
-          >
-            Refresh Health
-          </Button>
+
+          {/* Component Status */}
+          <div className="space-y-3">
+            <h3 className="font-medium text-gray-900 mb-3">Component Status</h3>
+            
+            {/* Database Status */}
+            <div className={`p-3 rounded-lg border ${getStatusColor(health.info.database.status)}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-2 h-2 rounded-full bg-current"></div>
+                  <span className="font-medium">Database</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span>{getStatusIcon(health.info.database.status)}</span>
+                  <span className="font-medium">{health.info.database.status.toUpperCase()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Foundry Status */}
+            <div className={`p-3 rounded-lg border ${getStatusColor(health.info.foundry.status)}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-2 h-2 rounded-full bg-current"></div>
+                  <span className="font-medium">Foundry Service</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span>{getStatusIcon(health.info.foundry.status)}</span>
+                  <span className="font-medium">{health.info.foundry.status.toUpperCase()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Last Check Time */}
+          <div className="pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-500">
+              Last checked: {new Date().toLocaleTimeString()}
+            </p>
+          </div>
         </div>
       )}
     </Card>

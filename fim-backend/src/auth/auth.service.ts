@@ -12,6 +12,7 @@ import { LoggerService } from '../common/logger/logger.service';
 import { AuthResponseDto } from './dto/auth-response.dto'; // Import AuthResponseDto
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -132,6 +133,11 @@ export class AuthService {
 
     const expiresInStr = this.configService.get<string>('JWT_EXPIRES_IN') || '3600s';
     return {
+      id: user.id.toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
       accessToken,
       refreshToken,
       expiresIn: this.convertToSeconds(expiresInStr),
@@ -204,6 +210,11 @@ export class AuthService {
     this.logger.log(`Tokens refreshed successfully for user ${user.email}`);
     const expiresInStr = this.configService.get<string>('JWT_EXPIRES_IN') || '3600s';
     return {
+      id: user.id.toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
       expiresIn: this.convertToSeconds(expiresInStr),
@@ -276,5 +287,45 @@ export class AuthService {
     });
 
     this.logger.log(`Password for user ${user.email} has been reset successfully.`);
+  }
+
+  /**
+   * Changes a user's password.
+   * @param userId The ID of the user.
+   * @param changePasswordDto The change password data.
+   * @throws BadRequestException if current password is invalid or new passwords don't match.
+   */
+  async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+    this.logger.log(`Attempting to change password for user ID: ${userId}`);
+
+    if (changePasswordDto.newPassword !== changePasswordDto.confirmNewPassword) {
+      this.logger.warn(`Password change failed: New passwords do not match for user ID ${userId}`);
+      throw new BadRequestException('New passwords do not match');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      this.logger.warn(`Password change failed: User with ID ${userId} not found`);
+      throw new BadRequestException('User not found');
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      this.logger.warn(`Password change failed: Invalid current password for user ${user.email}`);
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const hashedNewPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword },
+    });
+
+    this.logger.log(`Password for user ${user.email} has been changed successfully.`);
+    return { message: 'Password has been successfully changed.' };
   }
 }

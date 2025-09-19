@@ -58,11 +58,18 @@ export class UsersController {
     return this.usersService.updateUserRole(+id, updateUserRoleDto, req.user);
   }
 
+  @Delete('profile')
+  @ApiOperation({ summary: 'Delete current user account' })
+  @ApiResponse({ status: 200, description: 'User account successfully deleted.' })
+  deleteOwnAccount(@Req() req: AuthenticatedRequest): Promise<{ message: string }> {
+    return this.usersService.softDelete(req.user.userId);
+  }
+
   @Delete(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Soft delete a user by ID (Admin only)' })
-  @ApiResponse({ status: 200, description: 'User successfully soft deleted.', type: UserResponseDto })
-  remove(@Param('id') id: string): Promise<UserResponseDto> {
+  @ApiResponse({ status: 200, description: 'User successfully soft deleted.' })
+  remove(@Param('id') id: string): Promise<{ message: string }> {
     return this.usersService.softDelete(+id);
   }
 }

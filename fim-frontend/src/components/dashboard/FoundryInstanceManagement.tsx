@@ -39,94 +39,217 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
   onStopInstance,
   onDeleteInstance,
 }: FoundryInstanceManagementProps) {
-  return (
-    <Card className="mt-8 p-6 w-full max-w-4xl">
-      <h2 className="text-2xl font-semibold mb-4">Foundry Instance Management</h2>
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'running':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'stopped':
+        return 'text-red-600 bg-red-50 border-red-200';
+      case 'creating':
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'error':
+        return 'text-red-600 bg-red-50 border-red-200';
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
 
-      {loadingFoundry && <LoadingSpinner />}
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'running':
+        return '●';
+      case 'stopped':
+        return '○';
+      case 'creating':
+        return '⟳';
+      case 'error':
+        return '✗';
+      default:
+        return '?';
+    }
+  };
+
+  return (
+    <Card className="p-6 h-full">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Foundry Instances</h2>
+          <p className="text-sm text-gray-600 mt-1">Manage your Foundry VTT instances</p>
+        </div>
+        <div className="text-sm text-gray-500">
+          {foundryInstances.length} instance{foundryInstances.length !== 1 ? 's' : ''}
+        </div>
+      </div>
+
+      {loadingFoundry && (
+        <div className="flex items-center justify-center py-8">
+          <LoadingSpinner />
+        </div>
+      )}
+
       {foundryError && (
-        <Alert variant="destructive" className="mb-4">
+        <Alert variant="destructive" className="mb-6">
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{foundryError}</AlertDescription>
         </Alert>
       )}
 
-      <div className="mb-6">
-        <h3 className="text-xl font-medium mb-2">Create New Instance</h3>
-        <div className="flex space-x-4">
-          <Input
-            type="text"
-            placeholder="Instance Name"
-            value={newInstanceName}
-            onChange={(e) => setNewInstanceName(e.target.value)}
-            className="flex-grow"
-            disabled={loadingFoundry}
-          />
-          <Input
-            type="number"
-            placeholder="Port"
-            value={newInstancePort}
-            onChange={(e) => setNewInstancePort(e.target.value)}
-            className="w-24"
-            disabled={loadingFoundry}
-          />
-          <Button onClick={onCreateInstance} disabled={loadingFoundry || !newInstanceName || !newInstancePort}>
-            Create Instance
+      {/* Create New Instance Section */}
+      <div className="mb-8 p-4 bg-gray-50 rounded-lg border">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Instance</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Instance Name</label>
+            <Input
+              type="text"
+              placeholder="Enter instance name"
+              value={newInstanceName}
+              onChange={(e) => setNewInstanceName(e.target.value)}
+              disabled={loadingFoundry}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Port</label>
+            <Input
+              type="number"
+              placeholder="30000"
+              value={newInstancePort}
+              onChange={(e) => setNewInstancePort(e.target.value)}
+              disabled={loadingFoundry}
+              className="w-full"
+            />
+          </div>
+        </div>
+        <div className="mt-4">
+          <Button 
+            onClick={onCreateInstance} 
+            disabled={loadingFoundry || !newInstanceName || !newInstancePort}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition-colors"
+          >
+            {loadingFoundry ? 'Creating...' : 'Create Instance'}
           </Button>
         </div>
       </div>
 
+      {/* Existing Instances Section */}
       <div>
-        <h3 className="text-xl font-medium mb-2">Existing Instances</h3>
-        {foundryInstances.length === 0 && !loadingFoundry && <p>No Foundry instances found.</p>}
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Existing Instances</h3>
+        
+        {foundryInstances.length === 0 && !loadingFoundry && (
+          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <div className="text-gray-400 text-4xl mb-4">🎲</div>
+            <h4 className="text-lg font-medium text-gray-900 mb-2">No instances found</h4>
+            <p className="text-gray-600">Create your first Foundry instance to get started</p>
+          </div>
+        )}
+
         {foundryInstances.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-200">
-              <thead>
-                <tr>
-                  <th className="py-2 px-4 border-b text-left">Name</th>
-                  <th className="py-2 px-4 border-b text-left">Port</th>
-                  <th className="py-2 px-4 border-b text-left">Status</th>
-                  <th className="py-2 px-4 border-b text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {foundryInstances.map((instance) => (
-                  <tr key={instance.id} className="hover:bg-gray-50">
-                    <td className="py-2 px-4 border-b">{instance.name}</td>
-                    <td className="py-2 px-4 border-b">{instance.port}</td>
-                    <td className="py-2 px-4 border-b">
-                      <span className={`font-bold ${instance.status === 'running' ? 'text-green-500' : instance.status === 'stopped' ? 'text-red-500' : 'text-yellow-500'}`}>
-                        {instance.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="py-2 px-4 border-b space-x-2">
-                      <Button
-                        onClick={() => onStartInstance(instance.id)}
-                        disabled={loadingFoundry || instance.status === 'running'}
-                        className="bg-green-500 hover:bg-green-700 text-white"
-                      >
-                        Start
-                      </Button>
-                      <Button
-                        onClick={() => onStopInstance(instance.id)}
-                        disabled={loadingFoundry || instance.status === 'stopped'}
-                        className="bg-yellow-500 hover:bg-yellow-700 text-white"
-                      >
-                        Stop
-                      </Button>
-                      <Button
-                        onClick={() => onDeleteInstance(instance.id)}
-                        disabled={loadingFoundry}
-                        className="bg-red-500 hover:bg-red-700 text-white"
-                      >
-                        Delete
-                      </Button>
-                    </td>
+          <div className="space-y-4">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-hidden rounded-lg border border-gray-200">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Instance
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Port
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {foundryInstances.map((instance) => (
+                    <tr key={instance.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{instance.name}</div>
+                        <div className="text-sm text-gray-500">ID: {instance.id}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {instance.port}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(instance.status)}`}>
+                          <span className="mr-1">{getStatusIcon(instance.status)}</span>
+                          {instance.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <Button
+                          onClick={() => onStartInstance(instance.id)}
+                          disabled={loadingFoundry || instance.status === 'running'}
+                          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 text-xs rounded-md transition-colors"
+                        >
+                          Start
+                        </Button>
+                        <Button
+                          onClick={() => onStopInstance(instance.id)}
+                          disabled={loadingFoundry || instance.status === 'stopped'}
+                          className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 text-xs rounded-md transition-colors"
+                        >
+                          Stop
+                        </Button>
+                        <Button
+                          onClick={() => onDeleteInstance(instance.id)}
+                          disabled={loadingFoundry}
+                          className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 text-xs rounded-md transition-colors"
+                        >
+                          Delete
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {foundryInstances.map((instance) => (
+                <div key={instance.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">{instance.name}</h4>
+                      <p className="text-xs text-gray-500">Port: {instance.port}</p>
+                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(instance.status)}`}>
+                      <span className="mr-1">{getStatusIcon(instance.status)}</span>
+                      {instance.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={() => onStartInstance(instance.id)}
+                      disabled={loadingFoundry || instance.status === 'running'}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 text-sm rounded-md transition-colors"
+                    >
+                      Start
+                    </Button>
+                    <Button
+                      onClick={() => onStopInstance(instance.id)}
+                      disabled={loadingFoundry || instance.status === 'stopped'}
+                      className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-2 text-sm rounded-md transition-colors"
+                    >
+                      Stop
+                    </Button>
+                    <Button
+                      onClick={() => onDeleteInstance(instance.id)}
+                      disabled={loadingFoundry}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 text-sm rounded-md transition-colors"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

@@ -91,13 +91,14 @@ export class UsersService {
   /**
    * Soft deletes a user by setting their isActive status to false.
    * @param id The ID of the user to soft delete.
-   * @returns The updated user object.
+   * @returns The updated user object or success message.
    */
   async softDelete(id: number) {
-    return this.prisma.user.update({
+    await this.prisma.user.update({
       where: { id },
       data: { isActive: false },
     });
+    return { message: 'Account has been successfully deleted.' };
   }
 
   /**

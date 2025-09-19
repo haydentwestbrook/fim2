@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Request, Put } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -9,6 +9,8 @@ import { LoggerService } from '../common/logger/logger.service';
 import { AuthResponseDto } from './dto/auth-response.dto'; // Import AuthResponseDto
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -77,5 +79,18 @@ export class AuthController {
     await this.authService.resetPassword(resetPasswordDto);
     this.logger.log('Password has been successfully reset.');
     return { message: 'Password has been successfully reset.' };
+  }
+
+  @Put('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change user password' })
+  @ApiResponse({ status: 200, description: 'Password has been successfully changed.' })
+  @ApiResponse({ status: 400, description: 'Bad Request: Invalid current password or passwords do not match.' })
+  async changePassword(@Request() req: any, @Body() changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+    this.logger.log(`Received request to change password for user ID: ${req.user.userId}`);
+    const result = await this.authService.changePassword(req.user.userId, changePasswordDto);
+    this.logger.log('Password has been successfully changed.');
+    return result;
   }
 }
