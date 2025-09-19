@@ -74,33 +74,6 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
     }
   };
 
-  const getHealthStatusColor = (healthStatus: string) => {
-    switch (healthStatus) {
-      case 'healthy':
-        return 'text-green-600 bg-green-50 border-green-200';
-      case 'unhealthy':
-        return 'text-red-600 bg-red-50 border-red-200';
-      case 'checking':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'unknown':
-      default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
-  };
-
-  const getHealthStatusIcon = (healthStatus: string) => {
-    switch (healthStatus) {
-      case 'healthy':
-        return '✓';
-      case 'unhealthy':
-        return '✗';
-      case 'checking':
-        return '⟳';
-      case 'unknown':
-      default:
-        return '?';
-    }
-  };
 
   const getCombinedStatusDisplay = (instance: FoundryInstance) => {
     const statusText = instance.status.toUpperCase();

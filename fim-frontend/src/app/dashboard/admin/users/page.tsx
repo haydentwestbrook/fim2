@@ -61,7 +61,7 @@ const UserManagementPage = () => {
 
   if (loading) {
     return (
-      <DashboardLayout title="User Management">
+      <DashboardLayout>
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           <span className="ml-3 text-gray-600">Loading users...</span>
@@ -72,7 +72,7 @@ const UserManagementPage = () => {
 
   if (error) {
     return (
-      <DashboardLayout title="User Management">
+      <DashboardLayout>
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex">
             <div className="flex-shrink-0">
@@ -93,7 +93,7 @@ const UserManagementPage = () => {
   }
 
   return (
-    <DashboardLayout title="User Management">
+    <DashboardLayout>
       <div className="space-y-6">
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">

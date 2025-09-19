@@ -151,7 +151,7 @@ const UserProfilePage = () => {
 
   if (loading) {
     return (
-      <DashboardLayout title="Profile">
+      <DashboardLayout>
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           <span className="ml-3 text-gray-600">Loading profile...</span>
@@ -162,7 +162,7 @@ const UserProfilePage = () => {
 
   if (error && !user) {
     return (
-      <DashboardLayout title="Profile">
+      <DashboardLayout>
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex">
             <div className="flex-shrink-0">
@@ -183,7 +183,7 @@ const UserProfilePage = () => {
   }
 
   return (
-    <DashboardLayout title="Profile">
+    <DashboardLayout>
       <div className="space-y-6">
         {/* Success/Error Messages */}
         {success && (
@@ -397,7 +397,7 @@ const UserProfilePage = () => {
               <div className="space-y-4">
                 <div>
                   <label htmlFor="deleteConfirm" className="block text-sm font-medium text-red-700">
-                    Type "DELETE" to confirm account deletion
+                    Type &quot;DELETE&quot; to confirm account deletion
                   </label>
                   <input
                     type="text"
