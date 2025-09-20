@@ -4,6 +4,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs/promises'; // Import fs/promises
 import * as fsSync from 'fs'; // Import fs for synchronous operations
+import axios from 'axios'; // Import axios for HTTP requests
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, FoundryInstance, FoundryInstanceStatus } from '@prisma/client'; // Import Prisma namespace, FoundryInstance model type, and FoundryInstanceStatus enum
 
@@ -324,7 +325,6 @@ export class FoundryService {
         return 'unknown';
       }
 
-      const axios = require('axios');
       const response = await axios.get(`http://localhost:${instance.port}`, {
         timeout: 5000, // 5 second timeout
         validateStatus: (status) => status < 500, // Accept any status < 500 as healthy
