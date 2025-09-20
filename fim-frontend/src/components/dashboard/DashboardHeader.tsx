@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Card } from "../ui/Card";
+import { FoundryInstance } from "../../types/foundry";
 
 interface HealthStatus {
   status: string;
@@ -22,12 +23,6 @@ interface HealthStatus {
   };
 }
 
-interface FoundryInstance {
-  id: string;
-  name: string;
-  port: number;
-  status: 'running' | 'stopped' | 'creating' | 'error';
-}
 
 interface DashboardHeaderProps {
   health: HealthStatus | null;
@@ -40,7 +35,7 @@ const DashboardHeader = memo(function DashboardHeader({
   foundryInstances, 
   loading 
 }: DashboardHeaderProps) {
-  const runningInstances = foundryInstances.filter(instance => instance.status === 'running').length;
+  const runningInstances = foundryInstances.filter(instance => instance.status === 'RUNNING').length;
   const totalInstances = foundryInstances.length;
   const systemStatus = health?.status === 'ok' ? 'healthy' : 'unhealthy';
   

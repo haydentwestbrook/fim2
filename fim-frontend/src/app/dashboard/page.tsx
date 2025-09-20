@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import api, { getHealthStatus } from "../../lib/api";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
@@ -8,6 +9,7 @@ import SystemHealthCard from "../../components/dashboard/SystemHealthCard";
 import FoundryInstanceManagement from "../../components/dashboard/FoundryInstanceManagement";
 import useLogger from "../../lib/useLogger";
 import DevModeIndicator from "../../components/dev/DevModeIndicator";
+import { FoundryInstance } from "../../types/foundry";
 
 interface HealthStatus {
   status: string;
@@ -30,16 +32,10 @@ interface HealthStatus {
   };
 }
 
-interface FoundryInstance {
-  id: string;
-  name: string;
-  port: number;
-  status: 'running' | 'stopped' | 'creating' | 'error';
-  healthStatus: 'healthy' | 'unhealthy' | 'unknown' | 'checking';
-}
  
 export default function DashboardPage() {
   const log = useLogger({ component: 'DashboardPage' });
+  const { data: session } = useSession();
   
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,7 +67,7 @@ export default function DashboardPage() {
       const duration = performance.now() - startTime;
       log.performance('fetchHealth', duration);
     }
-  }, [log]);
+  }, []); // Remove log dependency to prevent recreation
 
   const checkInstanceHealth = useCallback(async (instanceId: string) => {
     log.info('Starting health check for instance', { instanceId });
@@ -109,9 +105,15 @@ export default function DashboardPage() {
         return newSet;
       });
     }
-  }, [log]);
+  }, []); // Remove log dependency
 
   const fetchFoundryInstances = useCallback(async () => {
+    // Only fetch Foundry instances for admin users
+    if (session?.user?.role !== 'ADMIN') {
+      log.info('Skipping Foundry instances fetch - user is not admin');
+      return;
+    }
+
     const startTime = performance.now();
     log.info('Starting Foundry instances fetch');
     setLoadingFoundry(true);
@@ -131,7 +133,7 @@ export default function DashboardPage() {
       const duration = performance.now() - startTime;
       log.performance('fetchFoundryInstances', duration);
     }
-  }, [log]);
+  }, [session]); // Only depend on session, not log
 
   const createFoundryInstance = useCallback(async () => {
     const startTime = performance.now();
@@ -229,10 +231,12 @@ export default function DashboardPage() {
     
     // Initial data fetch
     fetchHealth();
-    fetchFoundryInstances();
+    if (session) {
+      fetchFoundryInstances();
+    }
 
-    // Set up system health check interval (every 15 seconds)
-    const systemHealthInterval = parseInt(process.env.NEXT_PUBLIC_HEALTH_CHECK_INTERVAL || '15000', 10);
+    // Set up system health check interval (every 30 seconds)
+    const systemHealthInterval = parseInt(process.env.NEXT_PUBLIC_HEALTH_CHECK_INTERVAL || '30000', 10);
     const systemHealthCheckInterval = setInterval(() => {
       log.info('System health check interval triggered');
       fetchHealth();
@@ -251,7 +255,7 @@ export default function DashboardPage() {
       log.info('Instance health check interval triggered');
       // Check health for all running instances
       foundryInstances.forEach(instance => {
-        if (instance.status === 'running' && !healthCheckingInstances.has(instance.id)) {
+        if (instance.status === 'RUNNING' && !healthCheckingInstances.has(instance.id)) {
           checkInstanceHealth(instance.id);
         }
       });
@@ -266,7 +270,7 @@ export default function DashboardPage() {
       log.info('Dashboard page cleanup - all intervals cleared');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run once on mount
+  }, [session]); // Only depend on session, not the functions
 
   return (
     <>
@@ -280,9 +284,9 @@ export default function DashboardPage() {
           />
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            {/* System Health - Takes 1 column on XL screens, full width on smaller */}
-            <div className="xl:col-span-1">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* System Health - Takes 1 column on LG screens, full width on smaller */}
+            <div className="lg:col-span-1">
               <SystemHealthCard
                 health={health}
                 loading={loading}
@@ -291,24 +295,26 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Foundry Instance Management - Takes 2 columns on XL screens, full width on smaller */}
-            <div className="xl:col-span-2">
-              <FoundryInstanceManagement
-                foundryInstances={foundryInstances}
-                newInstanceName={newInstanceName}
-                setNewInstanceName={setNewInstanceName}
-                newInstancePort={newInstancePort}
-                setNewInstancePort={setNewInstancePort}
-                loadingFoundry={loadingFoundry}
-                foundryError={foundryError}
-                healthCheckingInstances={healthCheckingInstances}
-                onCreateInstance={createFoundryInstance}
-                onStartInstance={startFoundryInstance}
-                onStopInstance={stopFoundryInstance}
-                onDeleteInstance={deleteFoundryInstance}
-                onCheckHealth={checkInstanceHealth}
-              />
-            </div>
+            {/* Foundry Instance Management - Only show for admin users */}
+            {session?.user?.role === 'ADMIN' && (
+              <div className="lg:col-span-3">
+                <FoundryInstanceManagement
+                  foundryInstances={foundryInstances}
+                  newInstanceName={newInstanceName}
+                  setNewInstanceName={setNewInstanceName}
+                  newInstancePort={newInstancePort}
+                  setNewInstancePort={setNewInstancePort}
+                  loadingFoundry={loadingFoundry}
+                  foundryError={foundryError}
+                  healthCheckingInstances={healthCheckingInstances}
+                  onCreateInstance={createFoundryInstance}
+                  onStartInstance={startFoundryInstance}
+                  onStopInstance={stopFoundryInstance}
+                  onDeleteInstance={deleteFoundryInstance}
+                  onCheckHealth={checkInstanceHealth}
+                />
+              </div>
+            )}
           </div>
         </div>
       </DashboardLayout>

@@ -102,23 +102,24 @@ const UserManagementPage = () => {
               Manage user roles and permissions. You cannot change your own role.
             </p>
             
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+              <table className="w-full min-w-[600px] divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
                       ID
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
                       Email
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
                       Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                       Role
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
                       Actions
                     </th>
                   </tr>
@@ -126,16 +127,18 @@ const UserManagementPage = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {users.map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {user.id}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {user.email}
+                      <td className="px-4 py-4 text-sm text-gray-500">
+                        <div className="truncate max-w-[200px]" title={user.email}>
+                          {user.email}
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                         {user.firstName} {user.lastName}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           user.role === 'ADMIN' 
                             ? 'bg-purple-100 text-purple-800' 
@@ -144,21 +147,21 @@ const UserManagementPage = () => {
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 py-4">
                         <div className="flex items-center space-x-2">
                           <select
                             value={user.role}
                             onChange={(e) => handleRoleChange(user.id, e.target.value)}
                             disabled={user.id === parseInt(session?.user?.id || '', 10) || updatingUserId === user.id}
-                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            className="block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-xs disabled:bg-gray-100 disabled:cursor-not-allowed"
                           >
                             <option value="PLAYER">Player</option>
                             <option value="ADMIN">Admin</option>
                           </select>
                           {updatingUserId === user.id && (
                             <div className="flex items-center">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                              <span className="ml-2 text-xs text-gray-500">Updating...</span>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                              <span className="ml-1 text-xs text-gray-500">Updating...</span>
                             </div>
                           )}
                         </div>
@@ -167,6 +170,52 @@ const UserManagementPage = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {users.map((user) => (
+                <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-medium text-gray-900 truncate">
+                        {user.firstName} {user.lastName}
+                      </h4>
+                      <p className="text-xs text-gray-500 truncate" title={user.email}>
+                        {user.email}
+                      </p>
+                      <p className="text-xs text-gray-400">ID: {user.id}</p>
+                    </div>
+                    <div className="ml-4 flex-shrink-0">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        user.role === 'ADMIN' 
+                          ? 'bg-purple-100 text-purple-800' 
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {user.role}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={user.role}
+                      onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                      disabled={user.id === parseInt(session?.user?.id || '', 10) || updatingUserId === user.id}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="PLAYER">Player</option>
+                      <option value="ADMIN">Admin</option>
+                    </select>
+                    {updatingUserId === user.id && (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <span className="ml-2 text-xs text-gray-500">Updating...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
             
             {users.length === 0 && (

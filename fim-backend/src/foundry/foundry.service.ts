@@ -3,6 +3,7 @@ import { LoggerService } from '../common/logger/logger.service';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs/promises'; // Import fs/promises
+import * as fsSync from 'fs'; // Import fs for synchronous operations
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, FoundryInstance, FoundryInstanceStatus } from '@prisma/client'; // Import Prisma namespace, FoundryInstance model type, and FoundryInstanceStatus enum
 
@@ -59,22 +60,40 @@ export class FoundryService {
         await this._executeCommand(dockerStartCommand, `Failed to start existing Docker container for instance ${instance.name}`);
       } else {
         this.logger.log(`Foundry instance ${instance.name} does not have a container. Creating and starting a new one.`);
-        // Path to the data root *inside* the backend container, as mounted by docker-compose.
-        const internalDataRoot = '/app/foundry-data-root';
-        const internalInstancePath = `${internalDataRoot}/${instance.id}`;
-
+        
+        // Check if we're running inside a Docker container or on the host
+        const isRunningInDocker = fsSync.existsSync('/.dockerenv');
+        this.logger.debug(`isRunningInDocker: ${isRunningInDocker}`);
+        
         // Path to the data root *on the host*, read from environment variables.
-        const hostDataRoot = process.env.FIM_FOUNDRY_DATA_ROOT || '/var/lib/foundryvtt/data';
+        // When running on host (not in Docker), use a user-accessible directory
+        const hostDataRoot = isRunningInDocker 
+          ? (process.env.FIM_FOUNDRY_DATA_ROOT || '/var/lib/foundryvtt/data')
+          : (process.env.FIM_FOUNDRY_DATA_ROOT || `${process.env.HOME}/foundry-data`);
         const hostInstancePath = `${hostDataRoot}/${instance.id}`;
+        this.logger.debug(`hostDataRoot: ${hostDataRoot}`);
+        this.logger.debug(`hostInstancePath: ${hostInstancePath}`);
+        let dataPathToUse: string;
+        
+        if (isRunningInDocker) {
+          // Running inside Docker container - use the internal path that maps to host
+          const internalDataRoot = '/app/foundry-data-root';
+          dataPathToUse = `${internalDataRoot}/${instance.id}`;
+          this.logger.debug(`Running in Docker container, using internal path: ${dataPathToUse}`);
+        } else {
+          // Running on host - use the host path directly
+          dataPathToUse = hostInstancePath;
+          this.logger.debug(`Running on host, using host path: ${dataPathToUse}`);
+        }
 
-        // Create the directory on the path inside the container, which maps to the host.
-        await fs.mkdir(internalInstancePath, { recursive: true });
-        this.logger.debug(`Ensured host data directory exists at: ${internalInstancePath}`);
+        // Create the directory
+        await fs.mkdir(dataPathToUse, { recursive: true });
+        this.logger.debug(`Ensured data directory exists at: ${dataPathToUse}`);
 
         // Change ownership of the directory to the foundry user (1000:1000)
-        const chownCommand = `chown -R 1000:1000 ${internalInstancePath}`;
-        await this._executeCommand(chownCommand, `Failed to change ownership of ${internalInstancePath}`);
-        this.logger.debug(`Changed ownership of ${internalInstancePath} to 1000:1000`);
+        const chownCommand = `chown -R 1000:1000 ${dataPathToUse}`;
+        await this._executeCommand(chownCommand, `Failed to change ownership of ${dataPathToUse}`);
+        this.logger.debug(`Changed ownership of ${dataPathToUse} to 1000:1000`);
 
         // Use the *host path* for the Docker volume mount command, as the Docker daemon needs it.
         // The felddy/foundryvtt container will use these environment variables to set the correct permissions on the /data volume.
@@ -255,35 +274,42 @@ export class FoundryService {
   async createFoundryInstance(name: string, port: number, ownerId?: number): Promise<FoundryInstance & { healthStatus: 'healthy' | 'unhealthy' | 'unknown' | 'checking' }> {
     this.logger.log(`Attempting to create Foundry VTT instance with name: ${name}, port: ${port}`);
 
-    const existingInstanceByName = await this.prisma.foundryInstance.findUnique({ where: { name } });
-    if (existingInstanceByName) {
-      throw new BadRequestException(`Foundry instance with name '${name}' already exists.`);
-    }
-
-    const existingInstanceByPort = await this.prisma.foundryInstance.findUnique({ where: { port } });
-    if (existingInstanceByPort) {
-      throw new BadRequestException(`Foundry instance with port '${port}' already in use.`);
-    }
-
-    const newInstance = await this.prisma.foundryInstance.create({
-      data: {
-        name,
-        port,
-        ownerId,
-        status: FoundryInstanceStatus.CREATING,
-      },
-    });
-    this.logger.log(`Foundry VTT instance ${name} database record created with ID: ${newInstance.id}`);
-
     try {
-      const startedInstance = await this.startFoundry(newInstance.id);
-      this.logger.log(`Foundry VTT instance ${name} container started successfully.`);
-      return startedInstance;
+      const existingInstanceByName = await this.prisma.foundryInstance.findUnique({ where: { name } });
+      if (existingInstanceByName) {
+        throw new BadRequestException(`Foundry instance with name '${name}' already exists.`);
+      }
+
+      const existingInstanceByPort = await this.prisma.foundryInstance.findUnique({ where: { port } });
+      if (existingInstanceByPort) {
+        throw new BadRequestException(`Foundry instance with port '${port}' already in use.`);
+      }
+
+      const newInstance = await this.prisma.foundryInstance.create({
+        data: {
+          name,
+          port,
+          ownerId,
+          status: FoundryInstanceStatus.CREATING,
+        },
+      });
+      this.logger.log(`Foundry VTT instance ${name} database record created with ID: ${newInstance.id}`);
+
+      try {
+        this.logger.log(`About to call startFoundry for instance ${newInstance.id}`);
+        const startedInstance = await this.startFoundry(newInstance.id);
+        this.logger.log(`Foundry VTT instance ${name} container started successfully.`);
+        return startedInstance;
+      } catch (error) {
+        this.logger.error(`Error starting Foundry VTT instance ${name}: ${error.message}`);
+        this.logger.error(`Failed to start container for instance ${name}. Deleting database record to prevent orphaned entry.`);
+        await this.prisma.foundryInstance.delete({ where: { id: newInstance.id } });
+        this.logger.log(`Deleted database record for instance ${name}.`);
+        throw error; // Re-throw the original error from startFoundry
+      }
     } catch (error) {
-      this.logger.error(`Failed to start container for instance ${name}. Deleting database record to prevent orphaned entry.`);
-      await this.prisma.foundryInstance.delete({ where: { id: newInstance.id } });
-      this.logger.log(`Deleted database record for instance ${name}.`);
-      throw error; // Re-throw the original error from startFoundry
+      this.logger.error(`Error in createFoundryInstance: ${error.message}`);
+      throw error;
     }
   }
   /**

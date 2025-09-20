@@ -224,10 +224,10 @@ const UserProfilePage = () => {
               Update your personal information and account settings.
             </p>
 
-            <form onSubmit={handleProfileUpdate} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <form onSubmit={handleProfileUpdate} className="space-y-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
                     First Name
                   </label>
                   <input
@@ -235,12 +235,12 @@ const UserProfilePage = () => {
                     id="firstName"
                     value={profileData.firstName}
                     onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                     required
                   />
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
                     Last Name
                   </label>
                   <input
@@ -248,14 +248,14 @@ const UserProfilePage = () => {
                     id="lastName"
                     value={profileData.lastName}
                     onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address
                 </label>
                 <input
@@ -263,17 +263,17 @@ const UserProfilePage = () => {
                   id="email"
                   value={profileData.email}
                   onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Role
                 </label>
-                <div className="mt-1">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                <div>
+                  <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
                     user?.role === 'ADMIN' 
                       ? 'bg-purple-100 text-purple-800' 
                       : 'bg-green-100 text-green-800'
@@ -283,11 +283,11 @@ const UserProfilePage = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
                 <button
                   type="submit"
                   disabled={isUpdatingProfile}
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto inline-flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUpdatingProfile ? (
                     <>
@@ -311,9 +311,9 @@ const UserProfilePage = () => {
               Update your password to keep your account secure.
             </p>
 
-            <form onSubmit={handlePasswordChange} className="space-y-4">
+            <form onSubmit={handlePasswordChange} className="space-y-6">
               <div>
-                <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
                   Current Password
                 </label>
                 <input
@@ -321,13 +321,13 @@ const UserProfilePage = () => {
                   id="currentPassword"
                   value={passwordData.currentPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
                   New Password
                 </label>
                 <input
@@ -335,17 +335,17 @@ const UserProfilePage = () => {
                   id="newPassword"
                   value={passwordData.newPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                   required
                   minLength={8}
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-2 text-xs text-gray-500">
                   Password must be at least 8 characters long and contain uppercase, lowercase, and numbers.
                 </p>
               </div>
 
               <div>
-                <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-gray-700 mb-2">
                   Confirm New Password
                 </label>
                 <input
@@ -353,16 +353,16 @@ const UserProfilePage = () => {
                   id="confirmNewPassword"
                   value={passwordData.confirmNewPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                   required
                 />
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
                 <button
                   type="submit"
                   disabled={isChangingPassword}
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto inline-flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isChangingPassword ? (
                     <>
@@ -389,14 +389,14 @@ const UserProfilePage = () => {
             {!showDeleteConfirm ? (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                className="w-full sm:w-auto inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
                 Delete Account
               </button>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <label htmlFor="deleteConfirm" className="block text-sm font-medium text-red-700">
+                  <label htmlFor="deleteConfirm" className="block text-sm font-medium text-red-700 mb-2">
                     Type &quot;DELETE&quot; to confirm account deletion
                   </label>
                   <input
@@ -404,15 +404,15 @@ const UserProfilePage = () => {
                     id="deleteConfirm"
                     value={deleteConfirmText}
                     onChange={(e) => setDeleteConfirmText(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-red-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                    className="block w-full px-3 py-2 border border-red-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 text-sm"
                     placeholder="DELETE"
                   />
                 </div>
-                <div className="flex space-x-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={handleAccountDeletion}
                     disabled={isDeletingAccount || deleteConfirmText !== 'DELETE'}
-                    className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto inline-flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isDeletingAccount ? (
                       <>
@@ -428,7 +428,7 @@ const UserProfilePage = () => {
                       setShowDeleteConfirm(false);
                       setDeleteConfirmText('');
                     }}
-                    className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="w-full sm:w-auto inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     Cancel
                   </button>

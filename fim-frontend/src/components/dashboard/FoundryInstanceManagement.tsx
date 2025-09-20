@@ -4,14 +4,8 @@ import { Alert, AlertTitle, AlertDescription } from "../ui/Alert";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
+import { FoundryInstance } from "../../types/foundry";
 
-interface FoundryInstance {
-  id: string;
-  name: string;
-  port: number;
-  status: 'running' | 'stopped' | 'creating' | 'error';
-  healthStatus: 'healthy' | 'unhealthy' | 'unknown' | 'checking';
-}
 
 interface FoundryInstanceManagementProps {
   foundryInstances: FoundryInstance[];
@@ -46,14 +40,16 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
 }: FoundryInstanceManagementProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'running':
+      case 'RUNNING':
         return 'text-green-600 bg-green-50 border-green-200';
-      case 'stopped':
+      case 'STOPPED':
         return 'text-red-600 bg-red-50 border-red-200';
-      case 'creating':
+      case 'CREATING':
         return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'error':
+      case 'ERROR':
         return 'text-red-600 bg-red-50 border-red-200';
+      case 'DELETING':
+        return 'text-orange-600 bg-orange-50 border-orange-200';
       default:
         return 'text-gray-600 bg-gray-50 border-gray-200';
     }
@@ -61,14 +57,16 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'running':
+      case 'RUNNING':
         return '●';
-      case 'stopped':
+      case 'STOPPED':
         return '○';
-      case 'creating':
+      case 'CREATING':
         return '⟳';
-      case 'error':
+      case 'ERROR':
         return '✗';
+      case 'DELETING':
+        return '🗑';
       default:
         return '?';
     }
@@ -76,11 +74,11 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
 
 
   const getCombinedStatusDisplay = (instance: FoundryInstance) => {
-    const statusText = instance.status.toUpperCase();
-    const healthText = instance.healthStatus.toUpperCase();
+    const statusText = instance.status || 'UNKNOWN';
+    const healthText = instance.healthStatus?.toUpperCase() || 'UNKNOWN';
     const isChecking = healthCheckingInstances.has(instance.id);
     
-    if (instance.status === 'running') {
+    if (instance.status === 'RUNNING') {
       return `${statusText} (${isChecking ? 'CHECKING...' : healthText})`;
     }
     return statusText;
@@ -164,20 +162,20 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
         {foundryInstances.length > 0 && (
           <div className="space-y-4">
             {/* Desktop Table View */}
-            <div className="hidden md:block overflow-hidden rounded-lg border border-gray-200">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+              <table className="w-full min-w-[800px] divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
                       Instance
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                       Port
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
                       Actions
                     </th>
                   </tr>
@@ -185,53 +183,76 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
                 <tbody className="bg-white divide-y divide-gray-200">
                   {foundryInstances.map((instance) => (
                     <tr key={instance.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{instance.name}</div>
-                        <div className="text-sm text-gray-500">ID: {instance.id}</div>
+                      <td className="px-4 py-4">
+                        <div className="text-sm font-medium text-gray-900">
+                          {instance.status === 'RUNNING' ? (
+                            <button
+                              onClick={() => window.open(`http://localhost:${instance.port}`, '_blank')}
+                              className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                              title="Click to open Foundry instance"
+                            >
+                              {instance.name}
+                            </button>
+                          ) : (
+                            instance.name
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">ID: {instance.id}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                         {instance.port}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
+                      <td className="px-4 py-4">
+                        <div className="flex items-center space-x-2 flex-wrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(instance.status)}`}>
                             <span className="mr-1">{getStatusIcon(instance.status)}</span>
                             {getCombinedStatusDisplay(instance)}
                           </span>
-                          {instance.status === 'running' && (
-                            <Button
-                              onClick={() => onCheckHealth(instance.id)}
-                              disabled={healthCheckingInstances.has(instance.id)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 text-xs rounded-md transition-colors"
-                              title="Check Health"
-                            >
-                              {healthCheckingInstances.has(instance.id) ? '⟳' : '↻'}
-                            </Button>
+                          {instance.status === 'RUNNING' && (
+                            <div className="flex space-x-1">
+                              <Button
+                                onClick={() => window.open(`http://localhost:${instance.port}`, '_blank')}
+                                className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 text-xs rounded-md transition-colors"
+                                title="Open Foundry Instance"
+                              >
+                                🌐
+                              </Button>
+                              <Button
+                                onClick={() => onCheckHealth(instance.id)}
+                                disabled={healthCheckingInstances.has(instance.id)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 text-xs rounded-md transition-colors"
+                                title="Check Health"
+                              >
+                                {healthCheckingInstances.has(instance.id) ? '⟳' : '↻'}
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        <Button
-                          onClick={() => onStartInstance(instance.id)}
-                          disabled={loadingFoundry || instance.status === 'running'}
-                          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 text-xs rounded-md transition-colors"
-                        >
-                          Start
-                        </Button>
-                        <Button
-                          onClick={() => onStopInstance(instance.id)}
-                          disabled={loadingFoundry || instance.status === 'stopped'}
-                          className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 text-xs rounded-md transition-colors"
-                        >
-                          Stop
-                        </Button>
-                        <Button
-                          onClick={() => onDeleteInstance(instance.id)}
-                          disabled={loadingFoundry}
-                          className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 text-xs rounded-md transition-colors"
-                        >
-                          Delete
-                        </Button>
+                      <td className="px-4 py-4">
+                        <div className="flex space-x-2 flex-wrap">
+                          <Button
+                            onClick={() => onStartInstance(instance.id)}
+                            disabled={loadingFoundry || instance.status === 'RUNNING'}
+                            className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 text-xs rounded-md transition-colors"
+                          >
+                            Start
+                          </Button>
+                          <Button
+                            onClick={() => onStopInstance(instance.id)}
+                            disabled={loadingFoundry || instance.status === 'STOPPED'}
+                            className="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 text-xs rounded-md transition-colors"
+                          >
+                            Stop
+                          </Button>
+                          <Button
+                            onClick={() => onDeleteInstance(instance.id)}
+                            disabled={loadingFoundry}
+                            className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 text-xs rounded-md transition-colors"
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -245,7 +266,19 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
                 <div key={instance.id} className="bg-white border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-900">{instance.name}</h4>
+                      <h4 className="text-sm font-medium text-gray-900">
+                        {instance.status === 'RUNNING' ? (
+                          <button
+                            onClick={() => window.open(`http://localhost:${instance.port}`, '_blank')}
+                            className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                            title="Click to open Foundry instance"
+                          >
+                            {instance.name}
+                          </button>
+                        ) : (
+                          instance.name
+                        )}
+                      </h4>
                       <p className="text-xs text-gray-500">Port: {instance.port}</p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -253,29 +286,38 @@ const FoundryInstanceManagement = memo(function FoundryInstanceManagement({
                         <span className="mr-1">{getStatusIcon(instance.status)}</span>
                         {getCombinedStatusDisplay(instance)}
                       </span>
-                      {instance.status === 'running' && (
-                        <Button
-                          onClick={() => onCheckHealth(instance.id)}
-                          disabled={healthCheckingInstances.has(instance.id)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 text-xs rounded-md transition-colors"
-                          title="Check Health"
-                        >
-                          {healthCheckingInstances.has(instance.id) ? '⟳' : '↻'}
-                        </Button>
+                      {instance.status === 'RUNNING' && (
+                        <>
+                          <Button
+                            onClick={() => window.open(`http://localhost:${instance.port}`, '_blank')}
+                            className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 text-xs rounded-md transition-colors"
+                            title="Open Foundry Instance"
+                          >
+                            🌐
+                          </Button>
+                          <Button
+                            onClick={() => onCheckHealth(instance.id)}
+                            disabled={healthCheckingInstances.has(instance.id)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 text-xs rounded-md transition-colors"
+                            title="Check Health"
+                          >
+                            {healthCheckingInstances.has(instance.id) ? '⟳' : '↻'}
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
                   <div className="flex space-x-2">
                     <Button
                       onClick={() => onStartInstance(instance.id)}
-                      disabled={loadingFoundry || instance.status === 'running'}
+                      disabled={loadingFoundry || instance.status === 'RUNNING'}
                       className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 text-sm rounded-md transition-colors"
                     >
                       Start
                     </Button>
                     <Button
                       onClick={() => onStopInstance(instance.id)}
-                      disabled={loadingFoundry || instance.status === 'stopped'}
+                      disabled={loadingFoundry || instance.status === 'STOPPED'}
                       className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-2 text-sm rounded-md transition-colors"
                     >
                       Stop
